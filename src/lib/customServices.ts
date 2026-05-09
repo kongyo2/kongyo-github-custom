@@ -88,7 +88,12 @@ export const subscribeCustomServices = (
     scheduled = true;
     queueMicrotask(() => {
       scheduled = false;
-      void loadCustomServices().then(handler);
+      void loadCustomServices()
+        .then(handler)
+        .catch(() => {
+          // Transient chrome.storage.sync failure — leave previous state in
+          // place; the next legitimate change event will retry.
+        });
     });
   };
   chrome.storage.onChanged.addListener(listener);

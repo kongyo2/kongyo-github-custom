@@ -162,41 +162,42 @@ const ensureRendered = (): void => {
 };
 
 const start = async (): Promise<void> => {
+  let customSubscriberFired = false;
+  let settingsSubscriberFired = false;
+
+  // Subscribe BEFORE the initial reads so events landing mid-flight aren't
+  // silently overwritten by the older startup snapshot below.
+  subscribeSettings((next) => {
+    settingsSubscriberFired = true;
+    currentSettings = reconcileSettings(next, collectAvailableIds());
+    scheduleRender();
+  });
+
+  subscribeCustomServices((next) => {
+    customSubscriberFired = true;
+    currentCustomServices = next;
+    currentSettings = reconcileSettings(currentSettings, collectAvailableIds());
+    scheduleRender();
+  });
+
   // Load each datasource independently so a custom-services read failure
   // does not throw away otherwise readable settings (and vice versa).
   const [settingsResult, customResult] = await Promise.allSettled([
     loadSettings(),
     loadCustomServices(),
   ]);
-  if (customResult.status === "fulfilled") {
+  if (!customSubscriberFired && customResult.status === "fulfilled") {
     currentCustomServices = customResult.value;
   }
-  if (settingsResult.status === "fulfilled") {
-    currentSettings = reconcileSettings(
-      settingsResult.value,
-      collectAvailableIds(),
-    );
-  } else {
-    // No saved settings, but the available service set may still differ from
-    // DEFAULT_SETTINGS' built-in-only order if custom services loaded.
-    currentSettings = reconcileSettings(
-      DEFAULT_SETTINGS,
-      collectAvailableIds(),
-    );
+  if (!settingsSubscriberFired) {
+    const base =
+      settingsResult.status === "fulfilled"
+        ? settingsResult.value
+        : DEFAULT_SETTINGS;
+    currentSettings = reconcileSettings(base, collectAvailableIds());
   }
 
   scheduleRender();
-
-  subscribeSettings((next) => {
-    currentSettings = reconcileSettings(next, collectAvailableIds());
-    scheduleRender();
-  });
-
-  subscribeCustomServices((next) => {
-    currentCustomServices = next;
-    currentSettings = reconcileSettings(currentSettings, collectAvailableIds());
-    scheduleRender();
-  });
 
   let lastUrl = location.href;
   let isProcessing = false;

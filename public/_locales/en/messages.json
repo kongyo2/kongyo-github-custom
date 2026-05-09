@@ -218,5 +218,9 @@
   "settingShowButtonHint": {
     "message": "Toggle visibility on the GitHub action bar",
     "description": "Hint on the show-button toggle"
+  },
+  "customServicesLoadFailedNote": {
+    "message": "Couldn't read your custom services from sync. Reload the page to retry — adds and resets are paused to avoid overwriting unloaded entries.",
+    "description": "Banner shown when the initial custom-services storage read failed"
   }
 }

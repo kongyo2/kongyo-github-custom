@@ -74,6 +74,11 @@ export const App = (): JSX.Element => {
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
   const [customServices, setCustomServices] = useState<CustomServices>([]);
   const [loaded, setLoaded] = useState(false);
+  // Tracks whether we have an authoritative custom-services snapshot. When
+  // the initial sync read fails, this stays false and we block destructive
+  // operations (Add / Reset) so a successful save can't truncate the index
+  // to only the locally-known items, deleting unloaded sync state.
+  const [customServicesLoaded, setCustomServicesLoaded] = useState(false);
   const [toastShown, setToastShown] = useState(false);
   const [editingService, setEditingService] = useState<CustomService | null>(
     null,
@@ -85,6 +90,12 @@ export const App = (): JSX.Element => {
   // snapshots captured at render time.
   const settingsRef = useRef(settings);
   const customServicesRef = useRef(customServices);
+  const customServicesLoadedRef = useRef(customServicesLoaded);
+  // Set when a storage subscriber has committed a fresher value than the
+  // initial Promise.allSettled snapshot — used to avoid clobbering live
+  // updates that arrive while the startup reads are still in flight.
+  const customSubscriberFiredRef = useRef(false);
+  const settingsSubscriberFiredRef = useRef(false);
 
   useEffect(() => {
     settingsRef.current = settings;
@@ -92,6 +103,9 @@ export const App = (): JSX.Element => {
   useEffect(() => {
     customServicesRef.current = customServices;
   }, [customServices]);
+  useEffect(() => {
+    customServicesLoadedRef.current = customServicesLoaded;
+  }, [customServicesLoaded]);
 
   const serviceMap = useMemo(
     () => buildServiceMap(customServices),
@@ -103,37 +117,59 @@ export const App = (): JSX.Element => {
   );
 
   // Reconcile settings whenever services change so order/buttons stay in sync.
+  // Skip until we have an authoritative custom-services snapshot; otherwise an
+  // initial empty list would strip every custom ID from settings, and a save
+  // triggered by display/grouping changes would persist that loss.
   useEffect(() => {
+    if (!customServicesLoaded) return;
     setSettings((prev) => reconcileSettings(prev, availableIds));
-  }, [availableIds]);
+  }, [availableIds, customServicesLoaded]);
 
   useEffect(() => {
     let alive = true;
+    // Register subscribers BEFORE the initial reads so events that arrive
+    // mid-flight aren't lost or overwritten by stale startup snapshots.
+    const unsubscribeSettings = subscribeSettings((s) => {
+      if (!alive) return;
+      settingsSubscriberFiredRef.current = true;
+      const ids = Array.from(buildServiceMap(customServicesRef.current).keys());
+      setSettings(reconcileSettings(s, ids));
+    });
+    const unsubscribeCustom = subscribeCustomServices((c) => {
+      if (!alive) return;
+      customSubscriberFiredRef.current = true;
+      setCustomServices(c);
+      setCustomServicesLoaded(true);
+    });
+
     void Promise.allSettled([loadSettings(), loadCustomServices()]).then(
       ([settingsResult, customResult]) => {
         if (!alive) return;
-        const custom: CustomServices =
-          customResult.status === "fulfilled" ? customResult.value : [];
-        setCustomServices(custom);
-        const map = buildServiceMap(custom);
-        const baseSettings: Settings =
-          settingsResult.status === "fulfilled"
-            ? settingsResult.value
-            : DEFAULT_SETTINGS;
-        setSettings(reconcileSettings(baseSettings, Array.from(map.keys())));
+        // Only apply startup snapshots if no fresher subscription event has
+        // landed in the meantime.
+        if (
+          !customSubscriberFiredRef.current &&
+          customResult.status === "fulfilled"
+        ) {
+          setCustomServices(customResult.value);
+          setCustomServicesLoaded(true);
+        }
+        if (!settingsSubscriberFiredRef.current) {
+          const baseSettings: Settings =
+            settingsResult.status === "fulfilled"
+              ? settingsResult.value
+              : DEFAULT_SETTINGS;
+          const ids =
+            customResult.status === "fulfilled"
+              ? Array.from(buildServiceMap(customResult.value).keys())
+              : Array.from(buildServiceMap(customServicesRef.current).keys());
+          setSettings(reconcileSettings(baseSettings, ids));
+        }
         // Always unblock the UI — even on transient sync failures we can
         // still operate against defaults rather than leaving the page inert.
         setLoaded(true);
       },
     );
-    const unsubscribeSettings = subscribeSettings((s) => {
-      if (!alive) return;
-      const ids = Array.from(buildServiceMap(customServicesRef.current).keys());
-      setSettings(reconcileSettings(s, ids));
-    });
-    const unsubscribeCustom = subscribeCustomServices((c) => {
-      if (alive) setCustomServices(c);
-    });
     return () => {
       alive = false;
       unsubscribeSettings();
@@ -168,6 +204,10 @@ export const App = (): JSX.Element => {
   };
 
   const handleAddCustom = async (svc: CustomService): Promise<void> => {
+    // Refuse to save if we never got an authoritative read — otherwise a
+    // successful write would truncate the index to only the items present in
+    // this session, deleting unloaded sync entries.
+    if (!customServicesLoadedRef.current) return;
     const nextCustom = [...customServicesRef.current, svc];
     try {
       await saveCustomServices(nextCustom);
@@ -430,7 +470,11 @@ export const App = (): JSX.Element => {
                   type="button"
                   className="custom-add-btn"
                   onClick={() => setShowAdd(true)}
-                  disabled={!loaded || customServices.length >= 20}
+                  disabled={
+                    !loaded ||
+                    !customServicesLoaded ||
+                    customServices.length >= 20
+                  }
                 >
                   + {t("addCustomServiceLabel", "Add custom service")}
                 </button>
@@ -440,6 +484,14 @@ export const App = (): JSX.Element => {
                   {t(
                     "customServiceLimitNote",
                     "Maximum of 20 custom services reached.",
+                  )}
+                </span>
+              ) : null}
+              {loaded && !customServicesLoaded ? (
+                <span className="custom-section__note">
+                  {t(
+                    "customServicesLoadFailedNote",
+                    "Couldn't read your custom services from sync. Reload the page to retry — adds and resets are paused to avoid overwriting unloaded entries.",
                   )}
                 </span>
               ) : null}
@@ -454,7 +506,7 @@ export const App = (): JSX.Element => {
                     reconcileSettings(DEFAULT_SETTINGS, availableIds),
                   );
                 }}
-                disabled={!loaded}
+                disabled={!loaded || !customServicesLoaded}
               >
                 ↺ {t("settingsResetLabel", "Restore defaults")}
               </button>
