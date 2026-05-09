@@ -69,7 +69,15 @@ export const CustomServiceSchema = z.object({
 });
 export type CustomService = z.infer<typeof CustomServiceSchema>;
 
-export const CustomServicesSchema = z.array(CustomServiceSchema).max(20);
+export const MAX_CUSTOM_SERVICES = 20;
+
+export const CustomServicesSchema = z
+  .array(CustomServiceSchema)
+  .max(MAX_CUSTOM_SERVICES)
+  .refine(
+    (arr) => new Set(arr.map((s) => s.id)).size === arr.length,
+    "Custom service ids must be unique",
+  );
 export type CustomServices = z.infer<typeof CustomServicesSchema>;
 
 export const WikiExistsRequestSchema = z.object({

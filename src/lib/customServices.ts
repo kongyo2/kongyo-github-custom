@@ -1,6 +1,7 @@
 import {
   CustomServiceSchema,
   CustomServicesSchema,
+  MAX_CUSTOM_SERVICES,
   type CustomService,
   type CustomServices,
 } from "./schemas.ts";
@@ -27,12 +28,17 @@ export const loadCustomServices = async (): Promise<CustomServices> => {
   const keys = ids.map(itemKey);
   const items = await chrome.storage.sync.get(keys);
 
-  const out: CustomService[] = [];
+  const collected: CustomService[] = [];
+  const seen = new Set<string>();
   for (const id of ids) {
+    if (seen.has(id)) continue;
     const parsed = CustomServiceSchema.safeParse(items[itemKey(id)]);
-    if (parsed.success) out.push(parsed.data);
+    if (!parsed.success) continue;
+    seen.add(id);
+    collected.push(parsed.data);
+    if (collected.length >= MAX_CUSTOM_SERVICES) break;
   }
-  return out;
+  return collected;
 };
 
 export const saveCustomServices = async (
@@ -49,7 +55,13 @@ export const saveCustomServices = async (
   }
   await chrome.storage.sync.set(writes);
 
-  const orphans = previousIds.filter((id) => !nextIdSet.has(id)).map(itemKey);
+  // Re-read the index after our write — a concurrent writer (another tab or
+  // device) may have re-introduced an ID we considered an orphan, so only
+  // remove keys that are absent from the authoritative index.
+  const latestIds = new Set(await readIndex());
+  const orphans = previousIds
+    .filter((id) => !nextIdSet.has(id) && !latestIds.has(id))
+    .map(itemKey);
   if (orphans.length > 0) {
     await chrome.storage.sync.remove(orphans);
   }

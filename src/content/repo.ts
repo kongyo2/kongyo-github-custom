@@ -34,13 +34,6 @@ const RESERVED_OWNERS: ReadonlySet<string> = new Set([
   "sessions",
 ]);
 
-const RESERVED_REPO_SEGMENTS: ReadonlySet<string> = new Set([
-  "followers",
-  "following",
-  "stars",
-  "tab",
-]);
-
 export const parseRepoFromPath = (
   pathname: string = window.location.pathname,
 ): { owner: string; repo: string } | null => {
@@ -50,8 +43,10 @@ export const parseRepoFromPath = (
   const repo = match[2];
   if (!owner || !repo) return null;
   if (RESERVED_OWNERS.has(owner)) return null;
-  if (RESERVED_REPO_SEGMENTS.has(repo)) return null;
-  // GitHub repository names cannot end with `.git` in the URL nor contain dots-only
+  // We deliberately do not blacklist repo segments such as `followers`,
+  // `stars`, or `tab` — they look like profile concepts but are valid
+  // repository names. Pages that aren't repositories simply lack the
+  // `pagehead-actions` nav we hook into, so rendering becomes a no-op.
   if (repo === "." || repo === "..") return null;
   return { owner, repo };
 };
