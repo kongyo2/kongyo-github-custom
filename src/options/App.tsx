@@ -80,6 +80,18 @@ export const App = (): JSX.Element => {
   );
   const [showAdd, setShowAdd] = useState(false);
   const toastTimerRef = useRef<number | null>(null);
+  // Mirrors of the latest committed state, kept in sync via the effect below.
+  // Used by async handlers and storage subscribers to avoid acting on stale
+  // snapshots captured at render time.
+  const settingsRef = useRef(settings);
+  const customServicesRef = useRef(customServices);
+
+  useEffect(() => {
+    settingsRef.current = settings;
+  }, [settings]);
+  useEffect(() => {
+    customServicesRef.current = customServices;
+  }, [customServices]);
 
   const serviceMap = useMemo(
     () => buildServiceMap(customServices),
@@ -107,7 +119,9 @@ export const App = (): JSX.Element => {
       },
     );
     const unsubscribeSettings = subscribeSettings((s) => {
-      if (alive) setSettings(s);
+      if (!alive) return;
+      const ids = Array.from(buildServiceMap(customServicesRef.current).keys());
+      setSettings(reconcileSettings(s, ids));
     });
     const unsubscribeCustom = subscribeCustomServices((c) => {
       if (alive) setCustomServices(c);
@@ -146,21 +160,29 @@ export const App = (): JSX.Element => {
   };
 
   const handleAddCustom = async (svc: CustomService): Promise<void> => {
-    const nextCustom = [...customServices, svc];
-    const nextSettings: Settings = {
-      ...settings,
-      buttons: {
-        ...settings.buttons,
-        [svc.id]: { enabled: true, openInNewTab: true },
-      },
-      order: [...settings.order, svc.id],
-    };
+    const nextCustom = [...customServicesRef.current, svc];
     try {
       await saveCustomServices(nextCustom);
     } catch {
       return;
     }
     setCustomServices(nextCustom);
+    // Build settings off the latest state, not a snapshot captured before the
+    // await — the user may have changed display/grouping/order while we waited.
+    const latest = settingsRef.current;
+    const nextSettings: Settings = {
+      ...latest,
+      buttons: {
+        ...latest.buttons,
+        [svc.id]: latest.buttons[svc.id] ?? {
+          enabled: true,
+          openInNewTab: true,
+        },
+      },
+      order: latest.order.includes(svc.id)
+        ? latest.order
+        : [...latest.order, svc.id],
+    };
     setSettings(nextSettings);
     showToast();
     try {
@@ -172,12 +194,13 @@ export const App = (): JSX.Element => {
   };
 
   const handleUpdateCustom = async (svc: CustomService): Promise<void> => {
-    if (!customServices.some((c) => c.id === svc.id)) {
+    const current = customServicesRef.current;
+    if (!current.some((c) => c.id === svc.id)) {
       // The service was deleted while the form was open.
       setEditingService(null);
       return;
     }
-    const next = customServices.map((c) => (c.id === svc.id ? svc : c));
+    const next = current.map((c) => (c.id === svc.id ? svc : c));
     try {
       await saveCustomServices(next);
     } catch {
@@ -190,20 +213,23 @@ export const App = (): JSX.Element => {
 
   const handleDeleteCustom = async (id: string): Promise<void> => {
     if (!confirm(t("confirmDeleteService", "Delete this service?"))) return;
-    const nextCustom = customServices.filter((c) => c.id !== id);
-    const nextButtons = { ...settings.buttons };
-    delete nextButtons[id];
-    const nextSettings: Settings = {
-      ...settings,
-      buttons: nextButtons,
-      order: settings.order.filter((x) => x !== id),
-    };
+    const nextCustom = customServicesRef.current.filter((c) => c.id !== id);
     try {
       await saveCustomServices(nextCustom);
     } catch {
       return;
     }
     setCustomServices(nextCustom);
+    // Recompute settings off the latest snapshot to avoid clobbering
+    // display/grouping/order edits that landed during the await.
+    const latest = settingsRef.current;
+    const nextButtons = { ...latest.buttons };
+    delete nextButtons[id];
+    const nextSettings: Settings = {
+      ...latest,
+      buttons: nextButtons,
+      order: latest.order.filter((x) => x !== id),
+    };
     setSettings(nextSettings);
     if (editingService?.id === id) setEditingService(null);
     showToast();

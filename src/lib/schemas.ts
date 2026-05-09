@@ -41,8 +41,13 @@ export type Settings = z.infer<typeof SettingsSchema>;
 
 const HEX_COLOR = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/;
 
+export const CUSTOM_ID_PREFIX = "custom:";
+
 export const CustomServiceSchema = z.object({
-  id: z.string().min(1),
+  id: z
+    .string()
+    .min(CUSTOM_ID_PREFIX.length + 1)
+    .startsWith(CUSTOM_ID_PREFIX, `id must start with "${CUSTOM_ID_PREFIX}"`),
   label: z.string().trim().min(1).max(40),
   urlTemplate: z
     .string()
