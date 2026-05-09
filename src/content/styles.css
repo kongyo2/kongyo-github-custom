@@ -1,0 +1,21 @@
+.ghwb-container {
+  list-style: none;
+}
+
+.ghwb-button.btn-sm.btn.BtnGroup-item {
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 12px;
+  gap: 6px;
+}
+
+.ghwb-button .octicon {
+  display: inline-flex;
+  align-items: center;
+}
+
+.ghwb-button .octicon img {
+  display: block;
+  vertical-align: text-bottom;
+}

@@ -1,0 +1,70 @@
+{
+  "appName": {
+    "message": "Kongyo GitHub Custom",
+    "description": "The display name of the extension"
+  },
+  "appDescription": {
+    "message": "A pluggable browser extension that adds custom enhancements to GitHub. First module: DeepWiki and Code Wiki buttons on repository pages.",
+    "description": "The description shown in the Chrome Web Store and the manifest"
+  },
+  "optionsTitle": {
+    "message": "Kongyo GitHub Custom — Settings",
+    "description": "The title of the options page"
+  },
+  "optionsHeadline": {
+    "message": "Kongyo GitHub Custom",
+    "description": "The hero heading on the options page"
+  },
+  "optionsSubhead": {
+    "message": "A pluggable suite of GitHub enhancements. Configure each module below.",
+    "description": "Subheading shown beneath the hero on the options page"
+  },
+  "moduleWikiButtonsTitle": {
+    "message": "Wiki Buttons",
+    "description": "Section title for the Wiki buttons module"
+  },
+  "moduleWikiButtonsLede": {
+    "message": "Add DeepWiki and Code Wiki shortcuts to every GitHub repository page.",
+    "description": "Lede for the Wiki buttons module"
+  },
+  "deepwikiName": {
+    "message": "DeepWiki",
+    "description": "Display name for the DeepWiki button"
+  },
+  "deepwikiSummary": {
+    "message": "AI-generated, conversational documentation rendered from the repo.",
+    "description": "One-line summary of the DeepWiki integration"
+  },
+  "codewikiName": {
+    "message": "Code Wiki",
+    "description": "Display name for the Code Wiki button"
+  },
+  "codewikiSummary": {
+    "message": "Google's Code Wiki — explore the repository as a structured wiki.",
+    "description": "One-line summary of the Code Wiki integration"
+  },
+  "settingShowButton": {
+    "message": "Show button",
+    "description": "Toggle: whether the button is rendered"
+  },
+  "settingOpenInNewTab": {
+    "message": "Open in new tab",
+    "description": "Toggle: whether the destination opens in a new tab"
+  },
+  "settingsSavedToast": {
+    "message": "Settings saved.",
+    "description": "Toast shown after settings are persisted"
+  },
+  "settingsResetLabel": {
+    "message": "Restore defaults",
+    "description": "Button label that restores default settings"
+  },
+  "previewLabel": {
+    "message": "Live preview",
+    "description": "Label above the preview area"
+  },
+  "footerNote": {
+    "message": "Settings sync across the browsers you are signed into.",
+    "description": "Footer note on the options page"
+  }
+}

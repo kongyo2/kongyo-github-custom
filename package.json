@@ -1,0 +1,41 @@
+{
+  "name": "kongyo-github-custom",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "A pluggable browser extension that adds custom enhancements to GitHub. First module: DeepWiki + Code Wiki buttons.",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "format:file": "prettier --check",
+    "lint": "oxlint --silent",
+    "lint:strict": "oxlint --deny-warnings",
+    "lint:fix": "oxlint --fix",
+    "check:file": "oxlint",
+    "typecheck": "tsc --noEmit",
+    "package": "npm run build && node scripts/zip.mjs"
+  },
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@crxjs/vite-plugin": "^2.0.0-beta.30",
+    "@types/chrome": "^0.0.287",
+    "@types/node": "^22.10.2",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.4",
+    "oxlint": "^0.15.0",
+    "prettier": "^3.4.2",
+    "typescript": "^5.7.2",
+    "vite": "^5.4.11"
+  }
+}

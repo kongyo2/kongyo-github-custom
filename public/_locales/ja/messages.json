@@ -1,0 +1,70 @@
+{
+  "appName": {
+    "message": "Kongyo GitHub Custom",
+    "description": "拡張機能の表示名"
+  },
+  "appDescription": {
+    "message": "GitHub にカスタム機能を追加するプラガブルなブラウザ拡張。最初のモジュール: リポジトリページにDeepWikiとCode Wikiボタンを追加。",
+    "description": "Chrome Web Storeとmanifestに表示される説明"
+  },
+  "optionsTitle": {
+    "message": "Kongyo GitHub Custom — 設定",
+    "description": "設定ページのタイトル"
+  },
+  "optionsHeadline": {
+    "message": "Kongyo GitHub Custom",
+    "description": "設定ページのヒーロー見出し"
+  },
+  "optionsSubhead": {
+    "message": "GitHub 用カスタム機能のスイート。各モジュールを下で設定できます。",
+    "description": "設定ページのサブ見出し"
+  },
+  "moduleWikiButtonsTitle": {
+    "message": "Wiki ボタン",
+    "description": "Wiki ボタンモジュールのセクションタイトル"
+  },
+  "moduleWikiButtonsLede": {
+    "message": "GitHubリポジトリページにDeepWikiとCode Wikiへのショートカットを追加します。",
+    "description": "Wiki ボタンモジュールのリード文"
+  },
+  "deepwikiName": {
+    "message": "DeepWiki",
+    "description": "DeepWikiボタンの表示名"
+  },
+  "deepwikiSummary": {
+    "message": "リポジトリから生成された対話型のAIドキュメント。",
+    "description": "DeepWiki連携の説明"
+  },
+  "codewikiName": {
+    "message": "Code Wiki",
+    "description": "Code Wikiボタンの表示名"
+  },
+  "codewikiSummary": {
+    "message": "GoogleのCode Wiki — リポジトリを構造化されたWikiとして閲覧できます。",
+    "description": "Code Wiki連携の説明"
+  },
+  "settingShowButton": {
+    "message": "ボタンを表示",
+    "description": "ボタンを表示するか"
+  },
+  "settingOpenInNewTab": {
+    "message": "新しいタブで開く",
+    "description": "新しいタブで開くか"
+  },
+  "settingsSavedToast": {
+    "message": "設定を保存しました。",
+    "description": "保存後に表示されるトースト"
+  },
+  "settingsResetLabel": {
+    "message": "デフォルトに戻す",
+    "description": "デフォルト設定に戻すボタン"
+  },
+  "previewLabel": {
+    "message": "プレビュー",
+    "description": "プレビュー領域のラベル"
+  },
+  "footerNote": {
+    "message": "設定はサインインしているブラウザ間で同期されます。",
+    "description": "設定ページのフッターノート"
+  }
+}
