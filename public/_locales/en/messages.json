@@ -43,6 +43,38 @@
     "message": "Google's Code Wiki — explore the repository as a structured wiki.",
     "description": "One-line summary of the Code Wiki integration"
   },
+  "settingDisplayStyle": {
+    "message": "Display style",
+    "description": "Segmented control: how each button is rendered"
+  },
+  "settingDisplayStyleHint": {
+    "message": "How each button is rendered",
+    "description": "Hint shown beside the display-style control"
+  },
+  "displayIconText": {
+    "message": "Icon + label",
+    "description": "Display style choice: icon and text"
+  },
+  "displayIconOnly": {
+    "message": "Icon only",
+    "description": "Display style choice: compact icon-only"
+  },
+  "settingGrouping": {
+    "message": "Grouping",
+    "description": "Segmented control: how buttons sit next to each other"
+  },
+  "settingGroupingHint": {
+    "message": "How adjacent buttons sit next to each other",
+    "description": "Hint shown beside the grouping control"
+  },
+  "groupingSeparate": {
+    "message": "Separate",
+    "description": "Grouping choice: each button stands alone"
+  },
+  "groupingGrouped": {
+    "message": "Joined",
+    "description": "Grouping choice: buttons fused into a single GitHub BtnGroup"
+  },
   "settingShowButton": {
     "message": "Show button",
     "description": "Toggle: whether the button is rendered"

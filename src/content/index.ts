@@ -2,9 +2,10 @@ import {
   DEFAULT_SETTINGS,
   loadSettings,
   subscribeSettings,
+  type DisplayStyle,
   type Settings,
 } from "@/lib/settings.ts";
-import { WIKI_KEYS, WIKIS } from "@/lib/wikis.ts";
+import { WIKI_KEYS, WIKIS, type WikiKey } from "@/lib/wikis.ts";
 
 import "./styles.css";
 
@@ -31,16 +32,27 @@ const removeOurNodes = (): void => {
 };
 
 const buildButton = (
-  key: keyof typeof WIKIS,
+  key: WikiKey,
   owner: string,
   repo: string,
   openInNewTab: boolean,
+  style: DisplayStyle,
+  inGroup: boolean,
 ): HTMLAnchorElement => {
   const def = WIKIS[key];
   const button = document.createElement("a");
-  button.className = `${def.className} btn-sm btn BtnGroup-item`;
+  const classes = [
+    def.className,
+    "btn-sm",
+    "btn",
+    inGroup ? "BtnGroup-item" : "",
+    style === "icon-only" ? "ghwb-button--icon-only" : "ghwb-button--with-text",
+  ].filter(Boolean);
+  button.className = classes.join(" ");
   button.href = def.buildUrl(owner, repo);
   button.dataset["ghwbKey"] = def.key;
+  button.title = def.label;
+  button.setAttribute("aria-label", def.label);
   if (openInNewTab) {
     button.target = "_blank";
     button.rel = "noopener noreferrer";
@@ -53,11 +65,13 @@ const buildButton = (
   img.src = chrome.runtime.getURL(`${def.iconBase}-64.png`);
   img.width = 16;
   img.height = 16;
-  img.alt = def.label;
+  img.alt = "";
   icon.appendChild(img);
 
   button.appendChild(icon);
-  button.appendChild(document.createTextNode(def.label));
+  if (style !== "icon-only") {
+    button.appendChild(document.createTextNode(def.label));
+  }
   return button;
 };
 
@@ -71,30 +85,56 @@ const renderButtons = (): void => {
     return;
   }
 
-  const enabled = WIKI_KEYS.filter((key) => currentSettings[key].enabled);
+  const enabled = WIKI_KEYS.filter(
+    (key) => currentSettings.buttons[key].enabled,
+  );
 
   removeOurNodes();
   if (enabled.length === 0) return;
 
-  const container = document.createElement("li");
-  container.className = CONTAINER_CLASS;
+  const { style, grouping } = currentSettings.display;
 
-  const btnGroup = document.createElement("div");
-  btnGroup.setAttribute("data-view-component", "true");
-  btnGroup.className = "BtnGroup";
+  if (grouping === "grouped") {
+    const container = document.createElement("li");
+    container.className = CONTAINER_CLASS;
 
-  for (const key of enabled) {
-    const button = buildButton(
-      key,
-      repo.owner,
-      repo.repo,
-      currentSettings[key].openInNewTab,
-    );
-    btnGroup.appendChild(button);
+    const btnGroup = document.createElement("div");
+    btnGroup.setAttribute("data-view-component", "true");
+    btnGroup.className = "BtnGroup";
+
+    for (const key of enabled) {
+      const button = buildButton(
+        key,
+        repo.owner,
+        repo.repo,
+        currentSettings.buttons[key].openInNewTab,
+        style,
+        true,
+      );
+      btnGroup.appendChild(button);
+    }
+
+    container.appendChild(btnGroup);
+    navActions.insertBefore(container, navActions.firstChild);
+  } else {
+    // Render each button as its own <li>, so GitHub's pagehead-actions spacing
+    // separates them naturally. Insert in reverse so the first wiki ends up
+    // leftmost in the row.
+    for (const key of [...enabled].reverse()) {
+      const container = document.createElement("li");
+      container.className = CONTAINER_CLASS;
+      const button = buildButton(
+        key,
+        repo.owner,
+        repo.repo,
+        currentSettings.buttons[key].openInNewTab,
+        style,
+        false,
+      );
+      container.appendChild(button);
+      navActions.insertBefore(container, navActions.firstChild);
+    }
   }
-
-  container.appendChild(btnGroup);
-  navActions.insertBefore(container, navActions.firstChild);
 };
 
 const ensureRendered = (): void => {

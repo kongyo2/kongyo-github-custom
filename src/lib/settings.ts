@@ -5,11 +5,25 @@ export type ButtonSettings = {
   openInNewTab: boolean;
 };
 
-export type Settings = Record<WikiKey, ButtonSettings>;
+export type DisplayStyle = "icon-text" | "icon-only";
+export type GroupingMode = "separate" | "grouped";
+
+export type DisplaySettings = {
+  style: DisplayStyle;
+  grouping: GroupingMode;
+};
+
+export type Settings = {
+  display: DisplaySettings;
+  buttons: Record<WikiKey, ButtonSettings>;
+};
 
 export const DEFAULT_SETTINGS: Settings = {
-  deepwiki: { enabled: true, openInNewTab: true },
-  codewiki: { enabled: true, openInNewTab: true },
+  display: { style: "icon-text", grouping: "separate" },
+  buttons: {
+    deepwiki: { enabled: true, openInNewTab: true },
+    codewiki: { enabled: true, openInNewTab: true },
+  },
 };
 
 const STORAGE_KEY = "github-wiki-buttons:settings:v1";
@@ -22,14 +36,40 @@ const isButtonSettings = (value: unknown): value is ButtonSettings => {
   );
 };
 
+const isDisplayStyle = (value: unknown): value is DisplayStyle =>
+  value === "icon-text" || value === "icon-only";
+
+const isGroupingMode = (value: unknown): value is GroupingMode =>
+  value === "separate" || value === "grouped";
+
 const normalize = (raw: unknown): Settings => {
   const out: Settings = structuredClone(DEFAULT_SETTINGS);
   if (typeof raw !== "object" || raw === null) return out;
   const obj = raw as Record<string, unknown>;
+
+  // New shape: { display, buttons }
+  if ("buttons" in obj || "display" in obj) {
+    const display = obj["display"];
+    if (typeof display === "object" && display !== null) {
+      const d = display as Record<string, unknown>;
+      if (isDisplayStyle(d["style"])) out.display.style = d["style"];
+      if (isGroupingMode(d["grouping"])) out.display.grouping = d["grouping"];
+    }
+    const buttons = obj["buttons"];
+    if (typeof buttons === "object" && buttons !== null) {
+      const b = buttons as Record<string, unknown>;
+      for (const key of WIKI_KEYS) {
+        if (isButtonSettings(b[key])) out.buttons[key] = b[key];
+      }
+    }
+    return out;
+  }
+
+  // Legacy shape: Record<WikiKey, ButtonSettings>
   for (const key of WIKI_KEYS) {
     const candidate = obj[key];
     if (isButtonSettings(candidate)) {
-      out[key] = candidate;
+      out.buttons[key] = candidate;
     }
   }
   return out;

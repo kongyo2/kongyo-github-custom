@@ -2,12 +2,20 @@
   list-style: none;
 }
 
-.ghwb-button.btn-sm.btn.BtnGroup-item {
+.ghwb-button.btn-sm.btn {
   text-decoration: none;
   display: inline-flex;
   align-items: center;
-  padding: 3px 12px;
   gap: 6px;
+}
+
+.ghwb-button.ghwb-button--with-text {
+  padding: 3px 12px;
+}
+
+.ghwb-button.ghwb-button--icon-only {
+  padding: 3px 8px;
+  gap: 0;
 }
 
 .ghwb-button .octicon {

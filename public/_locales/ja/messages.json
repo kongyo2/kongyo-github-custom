@@ -43,6 +43,38 @@
     "message": "GoogleのCode Wiki — リポジトリを構造化されたWikiとして閲覧できます。",
     "description": "Code Wiki連携の説明"
   },
+  "settingDisplayStyle": {
+    "message": "表示スタイル",
+    "description": "各ボタンの表示形式"
+  },
+  "settingDisplayStyleHint": {
+    "message": "各ボタンの描画方法",
+    "description": "表示スタイルのヒント"
+  },
+  "displayIconText": {
+    "message": "アイコン + ラベル",
+    "description": "表示スタイル: アイコンとテキスト"
+  },
+  "displayIconOnly": {
+    "message": "アイコンのみ",
+    "description": "表示スタイル: コンパクトなアイコンのみ"
+  },
+  "settingGrouping": {
+    "message": "グループ化",
+    "description": "ボタンの並び方"
+  },
+  "settingGroupingHint": {
+    "message": "隣り合うボタンの配置方法",
+    "description": "グループ化のヒント"
+  },
+  "groupingSeparate": {
+    "message": "分離",
+    "description": "ボタンを独立して並べる"
+  },
+  "groupingGrouped": {
+    "message": "連結",
+    "description": "GitHubのBtnGroupとしてくっつける"
+  },
   "settingShowButton": {
     "message": "ボタンを表示",
     "description": "ボタンを表示するか"
