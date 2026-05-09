@@ -39,3 +39,74 @@
 .ghwb-button.ghwb-button--missing .octicon img {
   filter: grayscale(100%);
 }
+
+.ghwb-button.ghwb-button--checking {
+  position: relative;
+  cursor: progress;
+}
+
+.ghwb-button.ghwb-button--checking .octicon {
+  opacity: 0.6;
+  animation: ghwb-pulse 1.2s ease-in-out infinite;
+}
+
+.ghwb-button.ghwb-button--checking::after {
+  content: "";
+  position: absolute;
+  left: 6px;
+  right: 6px;
+  bottom: 0;
+  height: 2px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    currentColor 40%,
+    currentColor 60%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  background-position: 100% 0;
+  opacity: 0.45;
+  animation: ghwb-progress 1.1s linear infinite;
+  pointer-events: none;
+}
+
+@keyframes ghwb-pulse {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 0.95;
+  }
+}
+
+@keyframes ghwb-progress {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: -100% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ghwb-button.ghwb-button--checking .octicon,
+  .ghwb-button.ghwb-button--checking::after {
+    animation: none;
+  }
+}
+
+.ghwb-icon-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0;
+}

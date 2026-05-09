@@ -1,105 +1,74 @@
 import {
-  isWikiExistsRequest as _isWikiExistsRequest,
-  type WikiExistsRequest,
-  type WikiExistsResponse,
-} from "@/lib/messages.ts";
+  loadCustomServices,
+  subscribeCustomServices,
+} from "@/lib/customServices.ts";
+import type { WikiExistsRequest, WikiExistsResponse } from "@/lib/messages.ts";
+import type { CustomServices } from "@/lib/schemas.ts";
 import {
   DEFAULT_SETTINGS,
   loadSettings,
+  reconcileSettings,
   subscribeSettings,
-  type DisplayStyle,
   type Settings,
 } from "@/lib/settings.ts";
-import { WIKI_KEYS, WIKIS, type WikiKey } from "@/lib/wikis.ts";
+import { buildServiceMap, type ServiceDefinition } from "@/lib/services.ts";
+
+import { parseRepoFromPath } from "./repo.ts";
+import { buildButton, CONTAINER_CLASS, removeRenderedNodes } from "./render.ts";
 
 import "./styles.css";
 
-void _isWikiExistsRequest; // type-only import keeper
-
 const NAV_SELECTOR = "ul.pagehead-actions";
-const CONTAINER_CLASS = "ghwb-container";
 
 let currentSettings: Settings = DEFAULT_SETTINGS;
+let currentCustomServices: CustomServices = [];
 let renderEpoch = 0;
+let renderScheduled = false;
 
-const parseRepoFromPath = (): { owner: string; repo: string } | null => {
-  const match = window.location.pathname.match(/^\/([^/]+)\/([^/]+)/);
-  if (!match) return null;
-  const owner = match[1];
-  const repo = match[2];
-  if (!owner || !repo) return null;
-  if (owner.startsWith("orgs") || owner === "sponsors" || owner === "settings")
-    return null;
-  return { owner, repo };
+const collectAvailableIds = (): string[] => {
+  const map = buildServiceMap(currentCustomServices);
+  return Array.from(map.keys());
 };
 
-const removeOurNodes = (): void => {
-  for (const el of document.querySelectorAll(`.${CONTAINER_CLASS}`)) {
-    el.remove();
+const enabledOrderedServices = (): ServiceDefinition[] => {
+  const map = buildServiceMap(currentCustomServices);
+  const out: ServiceDefinition[] = [];
+  for (const id of currentSettings.order) {
+    const def = map.get(id);
+    if (!def) continue;
+    if (!currentSettings.buttons[id]?.enabled) continue;
+    out.push(def);
   }
-};
-
-const buildButton = (
-  key: WikiKey,
-  owner: string,
-  repo: string,
-  openInNewTab: boolean,
-  style: DisplayStyle,
-  inGroup: boolean,
-): HTMLAnchorElement => {
-  const def = WIKIS[key];
-  const button = document.createElement("a");
-  const classes = [
-    def.className,
-    "btn-sm",
-    "btn",
-    inGroup ? "BtnGroup-item" : "",
-    style === "icon-only" ? "ghwb-button--icon-only" : "ghwb-button--with-text",
-  ].filter(Boolean);
-  button.className = classes.join(" ");
-  button.href = def.buildUrl(owner, repo);
-  button.dataset["ghwbKey"] = def.key;
-  button.title = def.label;
-  button.setAttribute("aria-label", def.label);
-  if (openInNewTab) {
-    button.target = "_blank";
-    button.rel = "noopener noreferrer";
-  }
-  button.setAttribute("data-view-component", "true");
-
-  const icon = document.createElement("span");
-  icon.className = "octicon";
-  const img = document.createElement("img");
-  img.src = chrome.runtime.getURL(`${def.iconBase}-64.png`);
-  img.width = 16;
-  img.height = 16;
-  img.alt = "";
-  icon.appendChild(img);
-
-  button.appendChild(icon);
-  if (style !== "icon-only") {
-    button.appendChild(document.createTextNode(def.label));
-  }
-  return button;
+  return out;
 };
 
 const verifyExistence = (
   button: HTMLAnchorElement,
-  key: WikiKey,
+  def: ServiceDefinition,
   owner: string,
   repo: string,
   epoch: number,
 ): void => {
-  const def = WIKIS[key];
   if (!def.existenceCheck) return;
   if (!currentSettings.existenceCheck.enabled) return;
 
-  const request: WikiExistsRequest = { type: "wiki-exists", key, owner, repo };
+  button.classList.add("ghwb-button--checking");
+  const previousTitle = button.title;
+  button.title = `${def.label} — checking…`;
+
+  const request: WikiExistsRequest = {
+    type: "wiki-exists",
+    key: def.id,
+    owner,
+    repo,
+  };
   void chrome.runtime
     .sendMessage(request)
     .then((res: WikiExistsResponse | undefined) => {
       if (epoch !== renderEpoch) return;
       if (!button.isConnected) return;
+      button.classList.remove("ghwb-button--checking");
+      button.title = previousTitle;
       if (!res) return;
       if (res.exists === false) {
         button.classList.add("ghwb-button--missing");
@@ -109,7 +78,11 @@ const verifyExistence = (
         button.title = def.label;
       }
     })
-    .catch(() => undefined);
+    .catch(() => {
+      if (!button.isConnected) return;
+      button.classList.remove("ghwb-button--checking");
+      button.title = previousTitle;
+    });
 };
 
 const renderButtons = (): void => {
@@ -118,20 +91,18 @@ const renderButtons = (): void => {
 
   const repo = parseRepoFromPath();
   if (!repo) {
-    removeOurNodes();
+    removeRenderedNodes();
     return;
   }
 
-  const enabled = WIKI_KEYS.filter(
-    (key) => currentSettings.buttons[key].enabled,
-  );
+  const services = enabledOrderedServices();
 
-  removeOurNodes();
-  if (enabled.length === 0) return;
+  removeRenderedNodes();
+  if (services.length === 0) return;
 
   const epoch = ++renderEpoch;
   const { style, grouping } = currentSettings.display;
-  const buttonByKey = new Map<WikiKey, HTMLAnchorElement>();
+  const rendered: { def: ServiceDefinition; el: HTMLAnchorElement }[] = [];
 
   if (grouping === "grouped") {
     const container = document.createElement("li");
@@ -141,64 +112,78 @@ const renderButtons = (): void => {
     btnGroup.setAttribute("data-view-component", "true");
     btnGroup.className = "BtnGroup";
 
-    for (const key of enabled) {
-      const button = buildButton(
-        key,
-        repo.owner,
-        repo.repo,
-        currentSettings.buttons[key].openInNewTab,
+    for (const def of services) {
+      const button = buildButton(def, repo.owner, repo.repo, {
+        openInNewTab: currentSettings.buttons[def.id]?.openInNewTab ?? true,
         style,
-        true,
-      );
+        inGroup: true,
+      });
       btnGroup.appendChild(button);
-      buttonByKey.set(key, button);
+      rendered.push({ def, el: button });
     }
 
     container.appendChild(btnGroup);
     navActions.insertBefore(container, navActions.firstChild);
   } else {
-    for (const key of [...enabled].reverse()) {
+    // Insert in reverse so the first service in `services` ends up leftmost.
+    for (const def of [...services].reverse()) {
       const container = document.createElement("li");
       container.className = CONTAINER_CLASS;
-      const button = buildButton(
-        key,
-        repo.owner,
-        repo.repo,
-        currentSettings.buttons[key].openInNewTab,
+      const button = buildButton(def, repo.owner, repo.repo, {
+        openInNewTab: currentSettings.buttons[def.id]?.openInNewTab ?? true,
         style,
-        false,
-      );
+        inGroup: false,
+      });
       container.appendChild(button);
       navActions.insertBefore(container, navActions.firstChild);
-      buttonByKey.set(key, button);
+      rendered.push({ def, el: button });
     }
   }
 
-  // Fire existence checks for keys whose definition supports it
-  for (const [key, button] of buttonByKey) {
-    verifyExistence(button, key, repo.owner, repo.repo, epoch);
+  for (const { def, el } of rendered) {
+    verifyExistence(el, def, repo.owner, repo.repo, epoch);
   }
+};
+
+const scheduleRender = (): void => {
+  if (renderScheduled) return;
+  renderScheduled = true;
+  queueMicrotask(() => {
+    renderScheduled = false;
+    renderButtons();
+  });
 };
 
 const ensureRendered = (): void => {
   const navActions = document.querySelector<HTMLUListElement>(NAV_SELECTOR);
   if (!navActions) return;
   if (document.querySelector(`.${CONTAINER_CLASS}`)) return;
-  renderButtons();
+  scheduleRender();
 };
 
 const start = async (): Promise<void> => {
   try {
-    currentSettings = await loadSettings();
+    const [s, custom] = await Promise.all([
+      loadSettings(),
+      loadCustomServices(),
+    ]);
+    currentCustomServices = custom;
+    currentSettings = reconcileSettings(s, collectAvailableIds());
   } catch {
     // Keep rendering with defaults when synced settings are unavailable.
   }
 
-  renderButtons();
+  scheduleRender();
 
   subscribeSettings((next) => {
-    currentSettings = next;
-    renderButtons();
+    currentSettings = reconcileSettings(next, collectAvailableIds());
+    scheduleRender();
+  });
+
+  subscribeCustomServices((next) => {
+    currentCustomServices = next;
+    currentSettings = reconcileSettings(currentSettings, collectAvailableIds());
+    scheduleRender();
   });
 
   let lastUrl = location.href;
@@ -211,9 +196,7 @@ const start = async (): Promise<void> => {
       const url = location.href;
       if (url !== lastUrl) {
         lastUrl = url;
-        window.setTimeout(() => {
-          renderButtons();
-        }, 200);
+        window.setTimeout(scheduleRender, 200);
       } else {
         ensureRendered();
       }

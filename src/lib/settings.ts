@@ -1,29 +1,25 @@
-import { WIKI_KEYS, type WikiKey } from "./wikis.ts";
+import { BUILT_IN_SERVICE_IDS } from "./builtInServices.ts";
+import {
+  ButtonSettingsSchema,
+  DeepWikiExistenceCheckMethodSchema,
+  DisplayStyleSchema,
+  GroupingModeSchema,
+  SettingsSchema,
+  type ButtonSettings,
+  type Settings,
+} from "./schemas.ts";
 
-export type ButtonSettings = {
-  enabled: boolean;
-  openInNewTab: boolean;
-};
+export type {
+  ButtonSettings,
+  DeepWikiExistenceCheckMethod,
+  DisplaySettings,
+  DisplayStyle,
+  ExistenceCheckSettings,
+  GroupingMode,
+  Settings,
+} from "./schemas.ts";
 
-export type DisplayStyle = "icon-text" | "icon-only";
-export type GroupingMode = "separate" | "grouped";
-export type DeepWikiExistenceCheckMethod = "page" | "mcp";
-
-export type DisplaySettings = {
-  style: DisplayStyle;
-  grouping: GroupingMode;
-};
-
-export type ExistenceCheckSettings = {
-  enabled: boolean;
-  deepwikiMethod: DeepWikiExistenceCheckMethod;
-};
-
-export type Settings = {
-  display: DisplaySettings;
-  buttons: Record<WikiKey, ButtonSettings>;
-  existenceCheck: ExistenceCheckSettings;
-};
+const STORAGE_KEY = "github-wiki-buttons:settings:v1";
 
 export const DEFAULT_SETTINGS: Settings = {
   display: { style: "icon-text", grouping: "separate" },
@@ -33,73 +29,116 @@ export const DEFAULT_SETTINGS: Settings = {
     repomix: { enabled: true, openInNewTab: true },
   },
   existenceCheck: { enabled: true, deepwikiMethod: "page" },
+  order: [...BUILT_IN_SERVICE_IDS],
 };
 
-const STORAGE_KEY = "github-wiki-buttons:settings:v1";
+const cloneDefaults = (): Settings => structuredClone(DEFAULT_SETTINGS);
 
-const isButtonSettings = (value: unknown): value is ButtonSettings => {
-  if (typeof value !== "object" || value === null) return false;
-  const v = value as Record<string, unknown>;
-  return (
-    typeof v["enabled"] === "boolean" && typeof v["openInNewTab"] === "boolean"
-  );
-};
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null;
 
-const isDisplayStyle = (value: unknown): value is DisplayStyle =>
-  value === "icon-text" || value === "icon-only";
+/**
+ * Lenient parsing — older shapes (no `order`, legacy `Record<WikiKey, ButtonSettings>`)
+ * are upgraded silently so users never lose their preferences across versions.
+ */
+export const normalizeSettings = (raw: unknown): Settings => {
+  const parsed = SettingsSchema.safeParse(raw);
+  if (parsed.success) return parsed.data;
 
-const isGroupingMode = (value: unknown): value is GroupingMode =>
-  value === "separate" || value === "grouped";
+  const out = cloneDefaults();
+  if (!isRecord(raw)) return out;
 
-const isDeepWikiExistenceCheckMethod = (
-  value: unknown,
-): value is DeepWikiExistenceCheckMethod => value === "page" || value === "mcp";
-
-const normalize = (raw: unknown): Settings => {
-  const out: Settings = structuredClone(DEFAULT_SETTINGS);
-  if (typeof raw !== "object" || raw === null) return out;
-  const obj = raw as Record<string, unknown>;
-
-  // New shape: { display, buttons, existenceCheck }
-  if ("buttons" in obj || "display" in obj || "existenceCheck" in obj) {
-    const display = obj["display"];
-    if (typeof display === "object" && display !== null) {
-      const d = display as Record<string, unknown>;
-      if (isDisplayStyle(d["style"])) out.display.style = d["style"];
-      if (isGroupingMode(d["grouping"])) out.display.grouping = d["grouping"];
+  // Modern-ish shape with some keys present
+  if ("buttons" in raw || "display" in raw || "existenceCheck" in raw) {
+    const display = raw["display"];
+    if (isRecord(display)) {
+      const styleParsed = DisplayStyleSchema.safeParse(display["style"]);
+      if (styleParsed.success) out.display.style = styleParsed.data;
+      const groupingParsed = GroupingModeSchema.safeParse(display["grouping"]);
+      if (groupingParsed.success) out.display.grouping = groupingParsed.data;
     }
-    const buttons = obj["buttons"];
-    if (typeof buttons === "object" && buttons !== null) {
-      const b = buttons as Record<string, unknown>;
-      for (const key of WIKI_KEYS) {
-        if (isButtonSettings(b[key])) out.buttons[key] = b[key];
+    const buttons = raw["buttons"];
+    if (isRecord(buttons)) {
+      const next: Record<string, ButtonSettings> = {};
+      for (const [key, val] of Object.entries(buttons)) {
+        const candidate = ButtonSettingsSchema.safeParse(val);
+        if (candidate.success) next[key] = candidate.data;
+      }
+      // Ensure built-ins always have an entry
+      for (const id of BUILT_IN_SERVICE_IDS) {
+        next[id] ??= { enabled: true, openInNewTab: true };
+      }
+      out.buttons = next;
+    }
+    const ec = raw["existenceCheck"];
+    if (isRecord(ec)) {
+      if (typeof ec["enabled"] === "boolean") {
+        out.existenceCheck.enabled = ec["enabled"];
+      }
+      const methodParsed = DeepWikiExistenceCheckMethodSchema.safeParse(
+        ec["deepwikiMethod"],
+      );
+      if (methodParsed.success) {
+        out.existenceCheck.deepwikiMethod = methodParsed.data;
       }
     }
-    const ec = obj["existenceCheck"];
-    if (typeof ec === "object" && ec !== null) {
-      const e = ec as Record<string, unknown>;
-      if (typeof e["enabled"] === "boolean")
-        out.existenceCheck.enabled = e["enabled"];
-      if (isDeepWikiExistenceCheckMethod(e["deepwikiMethod"])) {
-        out.existenceCheck.deepwikiMethod = e["deepwikiMethod"];
+    if (Array.isArray(raw["order"])) {
+      const seen = new Set<string>();
+      const order: string[] = [];
+      for (const v of raw["order"]) {
+        if (typeof v === "string" && !seen.has(v)) {
+          order.push(v);
+          seen.add(v);
+        }
       }
+      out.order = order;
     }
     return out;
   }
 
-  // Legacy shape: Record<WikiKey, ButtonSettings>
-  for (const key of WIKI_KEYS) {
-    const candidate = obj[key];
-    if (isButtonSettings(candidate)) {
-      out.buttons[key] = candidate;
-    }
+  // Legacy: Record<BuiltInServiceId, ButtonSettings>
+  for (const key of BUILT_IN_SERVICE_IDS) {
+    const candidate = ButtonSettingsSchema.safeParse(raw[key]);
+    if (candidate.success) out.buttons[key] = candidate.data;
   }
   return out;
 };
 
+/**
+ * Reconcile settings against the current set of available service IDs.
+ *  - drop button entries / order entries that no longer exist
+ *  - append newly-added services to the end of the order
+ *  - default missing button entries to enabled
+ */
+export const reconcileSettings = (
+  settings: Settings,
+  availableServiceIds: readonly string[],
+): Settings => {
+  const available = new Set(availableServiceIds);
+  const buttons: Record<string, ButtonSettings> = {};
+  for (const id of availableServiceIds) {
+    buttons[id] = settings.buttons[id] ?? {
+      enabled: true,
+      openInNewTab: true,
+    };
+  }
+  const seen = new Set<string>();
+  const order: string[] = [];
+  for (const id of settings.order) {
+    if (available.has(id) && !seen.has(id)) {
+      order.push(id);
+      seen.add(id);
+    }
+  }
+  for (const id of availableServiceIds) {
+    if (!seen.has(id)) order.push(id);
+  }
+  return { ...settings, buttons, order };
+};
+
 export const loadSettings = async (): Promise<Settings> => {
   const got = await chrome.storage.sync.get(STORAGE_KEY);
-  return normalize(got[STORAGE_KEY]);
+  return normalizeSettings(got[STORAGE_KEY]);
 };
 
 export const saveSettings = async (settings: Settings): Promise<void> => {
@@ -116,7 +155,7 @@ export const subscribeSettings = (
     if (areaName !== "sync") return;
     const change = changes[STORAGE_KEY];
     if (!change) return;
-    handler(normalize(change.newValue));
+    handler(normalizeSettings(change.newValue));
   };
   chrome.storage.onChanged.addListener(listener);
   return () => {

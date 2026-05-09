@@ -1,8 +1,15 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
+import {
+  loadCustomServices,
+  saveCustomServices,
+  subscribeCustomServices,
+} from "@/lib/customServices.ts";
+import type { CustomService, CustomServices } from "@/lib/schemas.ts";
 import {
   DEFAULT_SETTINGS,
   loadSettings,
+  reconcileSettings,
   saveSettings,
   subscribeSettings,
   type DeepWikiExistenceCheckMethod,
@@ -10,43 +17,105 @@ import {
   type GroupingMode,
   type Settings,
 } from "@/lib/settings.ts";
-import { WIKI_KEYS } from "@/lib/wikis.ts";
+import { buildServiceMap } from "@/lib/services.ts";
 
+import { CustomServiceForm } from "./components/CustomServiceForm.tsx";
 import { Hero } from "./components/Hero.tsx";
 import { Preview } from "./components/Preview.tsx";
 import { Segmented } from "./components/Segmented.tsx";
+import { ServiceCard } from "./components/ServiceCard.tsx";
 import { Toast } from "./components/Toast.tsx";
-import { WikiCard } from "./components/WikiCard.tsx";
 import { t } from "./i18n.ts";
 
 import "./App.css";
 
-const ROMAN: Readonly<Record<number, string>> = {
-  0: "I",
-  1: "II",
-  2: "III",
-  3: "IV",
+const ROMAN: readonly string[] = [
+  "I",
+  "II",
+  "III",
+  "IV",
+  "V",
+  "VI",
+  "VII",
+  "VIII",
+  "IX",
+  "X",
+  "XI",
+  "XII",
+  "XIII",
+  "XIV",
+  "XV",
+  "XVI",
+  "XVII",
+  "XVIII",
+  "XIX",
+  "XX",
+];
+
+const SUMMARY_BY_BUILT_IN: Readonly<Record<string, () => string>> = {
+  deepwiki: () =>
+    t(
+      "deepwikiSummary",
+      "AI-generated, conversational documentation rendered from the repo.",
+    ),
+  codewiki: () =>
+    t(
+      "codewikiSummary",
+      "Google's Code Wiki — explore the repository as a structured wiki.",
+    ),
+  repomix: () =>
+    t(
+      "repomixSummary",
+      "Pack the repository into an AI-friendly single file with Repomix.",
+    ),
 };
 
 export const App = (): JSX.Element => {
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
+  const [customServices, setCustomServices] = useState<CustomServices>([]);
   const [loaded, setLoaded] = useState(false);
   const [toastShown, setToastShown] = useState(false);
+  const [editingService, setEditingService] = useState<CustomService | null>(
+    null,
+  );
+  const [showAdd, setShowAdd] = useState(false);
   const toastTimerRef = useRef<number | null>(null);
+
+  const serviceMap = useMemo(
+    () => buildServiceMap(customServices),
+    [customServices],
+  );
+  const availableIds = useMemo(
+    () => Array.from(serviceMap.keys()),
+    [serviceMap],
+  );
+
+  // Reconcile settings whenever services change so order/buttons stay in sync.
+  useEffect(() => {
+    setSettings((prev) => reconcileSettings(prev, availableIds));
+  }, [availableIds]);
 
   useEffect(() => {
     let alive = true;
-    void loadSettings().then((s) => {
-      if (!alive) return;
-      setSettings(s);
-      setLoaded(true);
-    });
-    const unsubscribe = subscribeSettings((s) => {
+    void Promise.all([loadSettings(), loadCustomServices()]).then(
+      ([s, custom]) => {
+        if (!alive) return;
+        setCustomServices(custom);
+        const map = buildServiceMap(custom);
+        setSettings(reconcileSettings(s, Array.from(map.keys())));
+        setLoaded(true);
+      },
+    );
+    const unsubscribeSettings = subscribeSettings((s) => {
       if (alive) setSettings(s);
+    });
+    const unsubscribeCustom = subscribeCustomServices((c) => {
+      if (alive) setCustomServices(c);
     });
     return () => {
       alive = false;
-      unsubscribe();
+      unsubscribeSettings();
+      unsubscribeCustom();
       if (toastTimerRef.current !== null)
         window.clearTimeout(toastTimerRef.current);
     };
@@ -59,24 +128,49 @@ export const App = (): JSX.Element => {
     toastTimerRef.current = window.setTimeout(() => setToastShown(false), 1600);
   };
 
-  const persist = (next: Settings): void => {
+  const persistSettings = (next: Settings): void => {
     setSettings(next);
     void saveSettings(next).then(showToast);
   };
 
-  const summaries: Readonly<Record<(typeof WIKI_KEYS)[number], string>> = {
-    deepwiki: t(
-      "deepwikiSummary",
-      "AI-generated, conversational documentation rendered from the repo.",
-    ),
-    codewiki: t(
-      "codewikiSummary",
-      "Google's Code Wiki — explore the repository as a structured wiki.",
-    ),
-    repomix: t(
-      "repomixSummary",
-      "Pack the repository into an AI-friendly single file with Repomix.",
-    ),
+  const persistCustom = (next: CustomServices): void => {
+    setCustomServices(next);
+    void saveCustomServices(next).then(showToast);
+  };
+
+  const moveService = (id: string, delta: -1 | 1): void => {
+    const idx = settings.order.indexOf(id);
+    if (idx === -1) return;
+    const target = idx + delta;
+    if (target < 0 || target >= settings.order.length) return;
+    const next = [...settings.order];
+    const tmp = next[idx]!;
+    next[idx] = next[target]!;
+    next[target] = tmp;
+    persistSettings({ ...settings, order: next });
+  };
+
+  const handleAddCustom = (svc: CustomService): void => {
+    persistCustom([...customServices, svc]);
+    persistSettings({
+      ...settings,
+      buttons: {
+        ...settings.buttons,
+        [svc.id]: { enabled: true, openInNewTab: true },
+      },
+      order: [...settings.order, svc.id],
+    });
+    setShowAdd(false);
+  };
+
+  const handleUpdateCustom = (svc: CustomService): void => {
+    persistCustom(customServices.map((c) => (c.id === svc.id ? svc : c)));
+    setEditingService(null);
+  };
+
+  const handleDeleteCustom = (id: string): void => {
+    if (!confirm(t("confirmDeleteService", "Delete this service?"))) return;
+    persistCustom(customServices.filter((c) => c.id !== id));
   };
 
   return (
@@ -96,7 +190,7 @@ export const App = (): JSX.Element => {
             <p className="section__lede">
               {t(
                 "repositoryButtonsLede",
-                "Add DeepWiki, Code Wiki, and Repomix shortcuts to every GitHub repository page.",
+                "Add DeepWiki, Code Wiki, Repomix and your own shortcuts to every GitHub repository page.",
               )}
             </p>
 
@@ -109,7 +203,7 @@ export const App = (): JSX.Element => {
                 )}
                 value={settings.display.style}
                 onChange={(style) =>
-                  persist({
+                  persistSettings({
                     ...settings,
                     display: { ...settings.display, style },
                   })
@@ -133,7 +227,7 @@ export const App = (): JSX.Element => {
                 )}
                 value={settings.display.grouping}
                 onChange={(grouping) =>
-                  persist({
+                  persistSettings({
                     ...settings,
                     display: { ...settings.display, grouping },
                   })
@@ -157,7 +251,7 @@ export const App = (): JSX.Element => {
                 )}
                 value={settings.existenceCheck.enabled ? "on" : "off"}
                 onChange={(v) =>
-                  persist({
+                  persistSettings({
                     ...settings,
                     existenceCheck: {
                       ...settings.existenceCheck,
@@ -181,7 +275,7 @@ export const App = (): JSX.Element => {
                 )}
                 value={settings.existenceCheck.deepwikiMethod}
                 onChange={(deepwikiMethod) =>
-                  persist({
+                  persistSettings({
                     ...settings,
                     existenceCheck: {
                       ...settings.existenceCheck,
@@ -197,27 +291,92 @@ export const App = (): JSX.Element => {
             </div>
 
             <div className="cards">
-              {WIKI_KEYS.map((key, idx) => (
-                <WikiCard
-                  key={key}
-                  wikiKey={key}
-                  value={settings.buttons[key]}
-                  ordinal={ROMAN[idx] ?? String(idx + 1)}
-                  summary={summaries[key]}
-                  onChange={(next) =>
-                    persist({
-                      ...settings,
-                      buttons: { ...settings.buttons, [key]: next },
-                    })
-                  }
-                />
-              ))}
+              {settings.order.map((id, idx) => {
+                const def = serviceMap.get(id);
+                if (!def) return null;
+                const value = settings.buttons[id] ?? {
+                  enabled: true,
+                  openInNewTab: true,
+                };
+                const summary =
+                  def.kind === "built-in"
+                    ? (SUMMARY_BY_BUILT_IN[def.id]?.() ?? "")
+                    : t(
+                        "customServiceSummary",
+                        "Custom service — opens the URL with {owner}/{repo} substituted.",
+                      );
+                return (
+                  <ServiceCard
+                    key={id}
+                    service={def}
+                    value={value}
+                    ordinal={ROMAN[idx] ?? String(idx + 1)}
+                    summary={summary}
+                    canMoveUp={idx > 0}
+                    canMoveDown={idx < settings.order.length - 1}
+                    onMoveUp={() => moveService(id, -1)}
+                    onMoveDown={() => moveService(id, 1)}
+                    {...(def.kind === "custom"
+                      ? {
+                          onEdit: () => setEditingService(def.custom!),
+                          onDelete: () => handleDeleteCustom(id),
+                        }
+                      : {})}
+                    onChange={(next) =>
+                      persistSettings({
+                        ...settings,
+                        buttons: { ...settings.buttons, [id]: next },
+                      })
+                    }
+                  />
+                );
+              })}
             </div>
+
+            <div className="custom-section">
+              {editingService ? (
+                <CustomServiceForm
+                  initial={editingService}
+                  existingIds={availableIds}
+                  onSubmit={handleUpdateCustom}
+                  onCancel={() => setEditingService(null)}
+                />
+              ) : showAdd ? (
+                <CustomServiceForm
+                  initial={null}
+                  existingIds={availableIds}
+                  onSubmit={handleAddCustom}
+                  onCancel={() => setShowAdd(false)}
+                />
+              ) : (
+                <button
+                  type="button"
+                  className="custom-add-btn"
+                  onClick={() => setShowAdd(true)}
+                  disabled={!loaded || customServices.length >= 20}
+                >
+                  + {t("addCustomServiceLabel", "Add custom service")}
+                </button>
+              )}
+              {customServices.length >= 20 ? (
+                <span className="custom-section__note">
+                  {t(
+                    "customServiceLimitNote",
+                    "Maximum of 20 custom services reached.",
+                  )}
+                </span>
+              ) : null}
+            </div>
+
             <div className="actions">
               <button
                 className="btn-reset"
                 type="button"
-                onClick={() => persist(DEFAULT_SETTINGS)}
+                onClick={() => {
+                  persistSettings(
+                    reconcileSettings(DEFAULT_SETTINGS, availableIds),
+                  );
+                }}
                 disabled={!loaded}
               >
                 ↺ {t("settingsResetLabel", "Restore defaults")}
@@ -236,7 +395,7 @@ export const App = (): JSX.Element => {
               </h2>
               <span className="section__rule" />
             </div>
-            <Preview settings={settings} />
+            <Preview settings={settings} customServices={customServices} />
           </section>
         </div>
       </div>
