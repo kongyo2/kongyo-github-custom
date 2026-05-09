@@ -19,7 +19,7 @@ export default defineManifest({
   },
 
   permissions: ["storage", "scripting"],
-  host_permissions: ["https://github.com/*"],
+  host_permissions: ["https://github.com/*", "https://deepwiki.com/*"],
 
   background: {
     service_worker: "src/background/index.ts",

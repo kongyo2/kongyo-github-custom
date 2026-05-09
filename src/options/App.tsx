@@ -144,6 +144,24 @@ export const App = (): JSX.Element => {
                   },
                 ]}
               />
+              <Segmented<"on" | "off">
+                label={t("settingExistenceCheck", "Existence check")}
+                hint={t(
+                  "settingExistenceCheckHint",
+                  "Dim buttons whose target page is not yet indexed",
+                )}
+                value={settings.existenceCheck.enabled ? "on" : "off"}
+                onChange={(v) =>
+                  persist({
+                    ...settings,
+                    existenceCheck: { enabled: v === "on" },
+                  })
+                }
+                options={[
+                  { value: "on", label: t("existenceOn", "On") },
+                  { value: "off", label: t("existenceOff", "Off") },
+                ]}
+              />
             </div>
 
             <div className="cards">

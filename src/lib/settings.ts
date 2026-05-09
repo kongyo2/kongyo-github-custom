@@ -13,9 +13,14 @@ export type DisplaySettings = {
   grouping: GroupingMode;
 };
 
+export type ExistenceCheckSettings = {
+  enabled: boolean;
+};
+
 export type Settings = {
   display: DisplaySettings;
   buttons: Record<WikiKey, ButtonSettings>;
+  existenceCheck: ExistenceCheckSettings;
 };
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -24,6 +29,7 @@ export const DEFAULT_SETTINGS: Settings = {
     deepwiki: { enabled: true, openInNewTab: true },
     codewiki: { enabled: true, openInNewTab: true },
   },
+  existenceCheck: { enabled: true },
 };
 
 const STORAGE_KEY = "github-wiki-buttons:settings:v1";
@@ -47,8 +53,8 @@ const normalize = (raw: unknown): Settings => {
   if (typeof raw !== "object" || raw === null) return out;
   const obj = raw as Record<string, unknown>;
 
-  // New shape: { display, buttons }
-  if ("buttons" in obj || "display" in obj) {
+  // New shape: { display, buttons, existenceCheck }
+  if ("buttons" in obj || "display" in obj || "existenceCheck" in obj) {
     const display = obj["display"];
     if (typeof display === "object" && display !== null) {
       const d = display as Record<string, unknown>;
@@ -61,6 +67,12 @@ const normalize = (raw: unknown): Settings => {
       for (const key of WIKI_KEYS) {
         if (isButtonSettings(b[key])) out.buttons[key] = b[key];
       }
+    }
+    const ec = obj["existenceCheck"];
+    if (typeof ec === "object" && ec !== null) {
+      const e = ec as Record<string, unknown>;
+      if (typeof e["enabled"] === "boolean")
+        out.existenceCheck.enabled = e["enabled"];
     }
     return out;
   }

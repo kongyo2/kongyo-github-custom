@@ -1,5 +1,10 @@
 export type WikiKey = "deepwiki" | "codewiki";
 
+export type ExistenceCheckConfig = {
+  origin: string;
+  buildCheckUrl: (owner: string, repo: string) => string;
+};
+
 export type WikiDefinition = {
   key: WikiKey;
   label: string;
@@ -7,6 +12,7 @@ export type WikiDefinition = {
   iconBase: string;
   buildUrl: (owner: string, repo: string) => string;
   brand: { from: string; to: string; ring: string };
+  existenceCheck?: ExistenceCheckConfig;
 };
 
 export const WIKI_KEYS: readonly WikiKey[] = ["deepwiki", "codewiki"] as const;
@@ -19,6 +25,10 @@ export const WIKIS: Readonly<Record<WikiKey, WikiDefinition>> = {
     iconBase: "images/deepwiki",
     buildUrl: (owner, repo) => `https://deepwiki.com/${owner}/${repo}`,
     brand: { from: "#5b8def", to: "#9c6cf0", ring: "rgba(91,141,239,0.45)" },
+    existenceCheck: {
+      origin: "https://deepwiki.com/*",
+      buildCheckUrl: (owner, repo) => `https://deepwiki.com/${owner}/${repo}`,
+    },
   },
   codewiki: {
     key: "codewiki",
@@ -30,3 +40,10 @@ export const WIKIS: Readonly<Record<WikiKey, WikiDefinition>> = {
     brand: { from: "#34a853", to: "#4285f4", ring: "rgba(66,133,244,0.45)" },
   },
 };
+
+export const ORIGINS_FOR_EXISTENCE_CHECK: readonly string[] = WIKI_KEYS.flatMap(
+  (k) => {
+    const def = WIKIS[k];
+    return def.existenceCheck ? [def.existenceCheck.origin] : [];
+  },
+);

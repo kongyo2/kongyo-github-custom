@@ -27,3 +27,15 @@
   display: block;
   vertical-align: text-bottom;
 }
+
+.ghwb-button.ghwb-button--missing {
+  opacity: 0.55;
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+  cursor: help;
+}
+
+.ghwb-button.ghwb-button--missing .octicon img {
+  filter: grayscale(100%);
+}

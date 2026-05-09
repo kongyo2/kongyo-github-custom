@@ -1,4 +1,9 @@
 import {
+  isWikiExistsRequest as _isWikiExistsRequest,
+  type WikiExistsRequest,
+  type WikiExistsResponse,
+} from "@/lib/messages.ts";
+import {
   DEFAULT_SETTINGS,
   loadSettings,
   subscribeSettings,
@@ -9,10 +14,13 @@ import { WIKI_KEYS, WIKIS, type WikiKey } from "@/lib/wikis.ts";
 
 import "./styles.css";
 
+void _isWikiExistsRequest; // type-only import keeper
+
 const NAV_SELECTOR = "ul.pagehead-actions";
 const CONTAINER_CLASS = "ghwb-container";
 
 let currentSettings: Settings = DEFAULT_SETTINGS;
+let renderEpoch = 0;
 
 const parseRepoFromPath = (): { owner: string; repo: string } | null => {
   const match = window.location.pathname.match(/^\/([^/]+)\/([^/]+)/);
@@ -75,6 +83,37 @@ const buildButton = (
   return button;
 };
 
+const verifyExistence = (
+  button: HTMLAnchorElement,
+  key: WikiKey,
+  owner: string,
+  repo: string,
+  epoch: number,
+): void => {
+  const def = WIKIS[key];
+  if (!def.existenceCheck) return;
+  if (!currentSettings.existenceCheck.enabled) return;
+
+  const request: WikiExistsRequest = { type: "wiki-exists", key, owner, repo };
+  void chrome.runtime
+    .sendMessage(request)
+    .then((res: WikiExistsResponse | undefined) => {
+      if (epoch !== renderEpoch) return;
+      if (!button.isConnected) return;
+      if (!res) return;
+      if (res.exists === false) {
+        button.classList.add("ghwb-button--missing");
+        button.title = `${def.label} — this repository is not indexed yet`;
+      } else if (res.exists === true) {
+        button.classList.remove("ghwb-button--missing");
+        button.title = def.label;
+      }
+    })
+    .catch((err: unknown) => {
+      console.error("[gh-wiki-buttons] verify failed", err);
+    });
+};
+
 const renderButtons = (): void => {
   const navActions = document.querySelector<HTMLUListElement>(NAV_SELECTOR);
   if (!navActions) return;
@@ -92,7 +131,9 @@ const renderButtons = (): void => {
   removeOurNodes();
   if (enabled.length === 0) return;
 
+  const epoch = ++renderEpoch;
   const { style, grouping } = currentSettings.display;
+  const buttonByKey = new Map<WikiKey, HTMLAnchorElement>();
 
   if (grouping === "grouped") {
     const container = document.createElement("li");
@@ -112,14 +153,12 @@ const renderButtons = (): void => {
         true,
       );
       btnGroup.appendChild(button);
+      buttonByKey.set(key, button);
     }
 
     container.appendChild(btnGroup);
     navActions.insertBefore(container, navActions.firstChild);
   } else {
-    // Render each button as its own <li>, so GitHub's pagehead-actions spacing
-    // separates them naturally. Insert in reverse so the first wiki ends up
-    // leftmost in the row.
     for (const key of [...enabled].reverse()) {
       const container = document.createElement("li");
       container.className = CONTAINER_CLASS;
@@ -133,7 +172,13 @@ const renderButtons = (): void => {
       );
       container.appendChild(button);
       navActions.insertBefore(container, navActions.firstChild);
+      buttonByKey.set(key, button);
     }
+  }
+
+  // Fire existence checks for keys whose definition supports it
+  for (const [key, button] of buttonByKey) {
+    verifyExistence(button, key, repo.owner, repo.repo, epoch);
   }
 };
 

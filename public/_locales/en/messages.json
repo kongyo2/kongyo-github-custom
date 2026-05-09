@@ -75,6 +75,22 @@
     "message": "Joined",
     "description": "Grouping choice: buttons fused into a single GitHub BtnGroup"
   },
+  "settingExistenceCheck": {
+    "message": "Existence check",
+    "description": "Toggle that controls whether the extension verifies the target page exists"
+  },
+  "settingExistenceCheckHint": {
+    "message": "Dim buttons whose target page is not yet indexed",
+    "description": "Hint shown beside the existence-check control"
+  },
+  "existenceOn": {
+    "message": "On",
+    "description": "Existence check: enabled"
+  },
+  "existenceOff": {
+    "message": "Off",
+    "description": "Existence check: disabled"
+  },
   "settingShowButton": {
     "message": "Show button",
     "description": "Toggle: whether the button is rendered"

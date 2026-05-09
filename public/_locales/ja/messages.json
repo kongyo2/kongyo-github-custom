@@ -75,6 +75,22 @@
     "message": "連結",
     "description": "GitHubのBtnGroupとしてくっつける"
   },
+  "settingExistenceCheck": {
+    "message": "存在確認",
+    "description": "対象ページが存在するかチェックするか"
+  },
+  "settingExistenceCheckHint": {
+    "message": "未登録のリポジトリのボタンを薄く表示",
+    "description": "存在確認のヒント"
+  },
+  "existenceOn": {
+    "message": "オン",
+    "description": "存在確認: 有効"
+  },
+  "existenceOff": {
+    "message": "オフ",
+    "description": "存在確認: 無効"
+  },
   "settingShowButton": {
     "message": "ボタンを表示",
     "description": "ボタンを表示するか"
