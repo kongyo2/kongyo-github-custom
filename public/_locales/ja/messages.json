@@ -91,6 +91,22 @@
     "message": "オフ",
     "description": "存在確認: 無効"
   },
+  "settingDeepWikiExistenceMethod": {
+    "message": "DeepWiki 判定方法",
+    "description": "DeepWiki の存在確認に使う方法"
+  },
+  "settingDeepWikiExistenceMethodHint": {
+    "message": "MCP は公式エンドポイントで確認",
+    "description": "DeepWiki 判定方法のヒント"
+  },
+  "existenceMethodPage": {
+    "message": "ページ",
+    "description": "DeepWiki 存在確認: ページ解析"
+  },
+  "existenceMethodMcp": {
+    "message": "MCP",
+    "description": "DeepWiki 存在確認: MCP"
+  },
   "settingShowButton": {
     "message": "ボタンを表示",
     "description": "ボタンを表示するか"

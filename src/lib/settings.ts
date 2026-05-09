@@ -7,6 +7,7 @@ export type ButtonSettings = {
 
 export type DisplayStyle = "icon-text" | "icon-only";
 export type GroupingMode = "separate" | "grouped";
+export type DeepWikiExistenceCheckMethod = "page" | "mcp";
 
 export type DisplaySettings = {
   style: DisplayStyle;
@@ -15,6 +16,7 @@ export type DisplaySettings = {
 
 export type ExistenceCheckSettings = {
   enabled: boolean;
+  deepwikiMethod: DeepWikiExistenceCheckMethod;
 };
 
 export type Settings = {
@@ -29,7 +31,7 @@ export const DEFAULT_SETTINGS: Settings = {
     deepwiki: { enabled: true, openInNewTab: true },
     codewiki: { enabled: true, openInNewTab: true },
   },
-  existenceCheck: { enabled: true },
+  existenceCheck: { enabled: true, deepwikiMethod: "page" },
 };
 
 const STORAGE_KEY = "github-wiki-buttons:settings:v1";
@@ -47,6 +49,11 @@ const isDisplayStyle = (value: unknown): value is DisplayStyle =>
 
 const isGroupingMode = (value: unknown): value is GroupingMode =>
   value === "separate" || value === "grouped";
+
+const isDeepWikiExistenceCheckMethod = (
+  value: unknown,
+): value is DeepWikiExistenceCheckMethod =>
+  value === "page" || value === "mcp";
 
 const normalize = (raw: unknown): Settings => {
   const out: Settings = structuredClone(DEFAULT_SETTINGS);
@@ -73,6 +80,9 @@ const normalize = (raw: unknown): Settings => {
       const e = ec as Record<string, unknown>;
       if (typeof e["enabled"] === "boolean")
         out.existenceCheck.enabled = e["enabled"];
+      if (isDeepWikiExistenceCheckMethod(e["deepwikiMethod"])) {
+        out.existenceCheck.deepwikiMethod = e["deepwikiMethod"];
+      }
     }
     return out;
   }

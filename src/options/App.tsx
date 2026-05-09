@@ -5,6 +5,7 @@ import {
   loadSettings,
   saveSettings,
   subscribeSettings,
+  type DeepWikiExistenceCheckMethod,
   type DisplayStyle,
   type GroupingMode,
   type Settings,
@@ -154,12 +155,39 @@ export const App = (): JSX.Element => {
                 onChange={(v) =>
                   persist({
                     ...settings,
-                    existenceCheck: { enabled: v === "on" },
+                    existenceCheck: {
+                      ...settings.existenceCheck,
+                      enabled: v === "on",
+                    },
                   })
                 }
                 options={[
                   { value: "on", label: t("existenceOn", "On") },
                   { value: "off", label: t("existenceOff", "Off") },
+                ]}
+              />
+              <Segmented<DeepWikiExistenceCheckMethod>
+                label={t(
+                  "settingDeepWikiExistenceMethod",
+                  "DeepWiki check method",
+                )}
+                hint={t(
+                  "settingDeepWikiExistenceMethodHint",
+                  "MCP calls the official DeepWiki endpoint",
+                )}
+                value={settings.existenceCheck.deepwikiMethod}
+                onChange={(deepwikiMethod) =>
+                  persist({
+                    ...settings,
+                    existenceCheck: {
+                      ...settings.existenceCheck,
+                      deepwikiMethod,
+                    },
+                  })
+                }
+                options={[
+                  { value: "page", label: t("existenceMethodPage", "Page") },
+                  { value: "mcp", label: t("existenceMethodMcp", "MCP") },
                 ]}
               />
             </div>

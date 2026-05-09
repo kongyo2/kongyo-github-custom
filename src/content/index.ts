@@ -109,9 +109,7 @@ const verifyExistence = (
         button.title = def.label;
       }
     })
-    .catch((err: unknown) => {
-      console.error("[gh-wiki-buttons] verify failed", err);
-    });
+    .catch(() => undefined);
 };
 
 const renderButtons = (): void => {
@@ -192,8 +190,8 @@ const ensureRendered = (): void => {
 const start = async (): Promise<void> => {
   try {
     currentSettings = await loadSettings();
-  } catch (err) {
-    console.error("[gh-wiki-buttons] failed to load settings", err);
+  } catch {
+    // Keep rendering with defaults when synced settings are unavailable.
   }
 
   renderButtons();

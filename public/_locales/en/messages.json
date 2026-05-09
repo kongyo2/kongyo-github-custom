@@ -91,6 +91,22 @@
     "message": "Off",
     "description": "Existence check: disabled"
   },
+  "settingDeepWikiExistenceMethod": {
+    "message": "DeepWiki check method",
+    "description": "Segmented control: how DeepWiki existence is checked"
+  },
+  "settingDeepWikiExistenceMethodHint": {
+    "message": "MCP checks the official endpoint",
+    "description": "Hint shown beside the DeepWiki check method control"
+  },
+  "existenceMethodPage": {
+    "message": "Page",
+    "description": "DeepWiki existence check: page scan"
+  },
+  "existenceMethodMcp": {
+    "message": "MCP",
+    "description": "DeepWiki existence check: MCP"
+  },
   "settingShowButton": {
     "message": "Show button",
     "description": "Toggle: whether the button is rendered"

@@ -19,7 +19,7 @@ const releaseDir = join(root, "release");
 const pkg = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
 
 if (!existsSync(dist)) {
-  console.error("dist/ not found. Run `npm run build` first.");
+  process.stderr.write("dist/ not found. Run `npm run build` first.\n");
   process.exit(1);
 }
 
@@ -135,6 +135,6 @@ await pipeline(async function* () {
 }, stream);
 
 const size = statSync(out).size;
-console.log(
-  `✔ wrote ${out} (${(size / 1024).toFixed(1)} KB, ${files.length} files)`,
+process.stdout.write(
+  `✔ wrote ${out} (${(size / 1024).toFixed(1)} KB, ${files.length} files)\n`,
 );
