@@ -336,6 +336,7 @@ export const App = (): JSX.Element => {
             <div className="custom-section">
               {editingService ? (
                 <CustomServiceForm
+                  key={`edit:${editingService.id}`}
                   initial={editingService}
                   existingIds={availableIds}
                   onSubmit={handleUpdateCustom}
@@ -343,6 +344,7 @@ export const App = (): JSX.Element => {
                 />
               ) : showAdd ? (
                 <CustomServiceForm
+                  key="new"
                   initial={null}
                   existingIds={availableIds}
                   onSubmit={handleAddCustom}
