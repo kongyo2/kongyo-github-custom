@@ -36,9 +36,7 @@ type McpJsonRpcResponse = {
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null;
 
-const isMcpJsonRpcResponse = (
-  value: unknown,
-): value is McpJsonRpcResponse => {
+const isMcpJsonRpcResponse = (value: unknown): value is McpJsonRpcResponse => {
   if (!isRecord(value)) return false;
   return "result" in value || "error" in value;
 };

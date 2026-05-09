@@ -1,4 +1,4 @@
-export type WikiKey = "deepwiki" | "codewiki";
+export type WikiKey = "deepwiki" | "codewiki" | "repomix";
 
 export type ExistenceCheckConfig = {
   origin: string;
@@ -15,7 +15,11 @@ export type WikiDefinition = {
   existenceCheck?: ExistenceCheckConfig;
 };
 
-export const WIKI_KEYS: readonly WikiKey[] = ["deepwiki", "codewiki"] as const;
+export const WIKI_KEYS: readonly WikiKey[] = [
+  "deepwiki",
+  "codewiki",
+  "repomix",
+] as const;
 
 export const WIKIS: Readonly<Record<WikiKey, WikiDefinition>> = {
   deepwiki: {
@@ -38,6 +42,17 @@ export const WIKIS: Readonly<Record<WikiKey, WikiDefinition>> = {
     buildUrl: (owner, repo) =>
       `https://codewiki.google/github.com/${owner}/${repo}`,
     brand: { from: "#34a853", to: "#4285f4", ring: "rgba(66,133,244,0.45)" },
+  },
+  repomix: {
+    key: "repomix",
+    label: "Repomix",
+    className: "ghwb-button ghwb-button--repomix",
+    iconBase: "images/repomix",
+    buildUrl: (owner, repo) =>
+      `https://repomix.com/?repo=${encodeURIComponent(
+        `https://github.com/${owner}/${repo}`,
+      )}`,
+    brand: { from: "#ea7f3a", to: "#f4b55f", ring: "rgba(234,127,58,0.45)" },
   },
 };
 

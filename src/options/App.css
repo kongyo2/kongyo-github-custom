@@ -700,6 +700,10 @@ input.toggle__input:focus-visible + .toggle__switch {
   border-color: rgba(60, 107, 58, 0.5);
 }
 
+.gh-btn--ghwb[data-key="repomix"] {
+  border-color: rgba(234, 127, 58, 0.55);
+}
+
 .preview__empty {
   font-family: var(--mono);
   font-size: 11px;

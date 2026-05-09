@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "description": "A pluggable browser extension that adds custom enhancements to GitHub. First module: DeepWiki + Code Wiki buttons.",
+  "description": "A pluggable browser extension that adds custom enhancements to GitHub. First module: DeepWiki + Code Wiki + Repomix buttons.",
   "license": "MIT",
   "engines": {
     "node": ">=20"

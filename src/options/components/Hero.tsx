@@ -33,9 +33,9 @@ export const Hero = (): JSX.Element => (
       own toggles. Disabling a module hides every UI surface it injects.
     </p>
     <p className="hero__copy">
-      The inaugural module — <em>Wiki Buttons</em> — pins DeepWiki and Code Wiki
-      shortcuts next to every repository's Watch / Fork / Star bar. More modules
-      will land in this same panel.
+      The inaugural module — <em>Repository Buttons</em> — pins DeepWiki, Code
+      Wiki, and Repomix shortcuts next to every repository's Watch / Fork / Star
+      bar. More modules will land in this same panel.
     </p>
     <div className="hero__byline">
       <span>Edited locally</span>

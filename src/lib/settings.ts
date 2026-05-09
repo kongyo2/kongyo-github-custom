@@ -30,6 +30,7 @@ export const DEFAULT_SETTINGS: Settings = {
   buttons: {
     deepwiki: { enabled: true, openInNewTab: true },
     codewiki: { enabled: true, openInNewTab: true },
+    repomix: { enabled: true, openInNewTab: true },
   },
   existenceCheck: { enabled: true, deepwikiMethod: "page" },
 };
@@ -52,8 +53,7 @@ const isGroupingMode = (value: unknown): value is GroupingMode =>
 
 const isDeepWikiExistenceCheckMethod = (
   value: unknown,
-): value is DeepWikiExistenceCheckMethod =>
-  value === "page" || value === "mcp";
+): value is DeepWikiExistenceCheckMethod => value === "page" || value === "mcp";
 
 const normalize = (raw: unknown): Settings => {
   const out: Settings = structuredClone(DEFAULT_SETTINGS);

@@ -15,6 +15,12 @@ type Props = {
 const previewOwner = "octocat";
 const previewRepo = "hello-world";
 
+const CARD_TINTS: Readonly<Record<WikiKey, string>> = {
+  deepwiki: "rgba(42,74,184,0.07)",
+  codewiki: "rgba(60,107,58,0.07)",
+  repomix: "rgba(234,127,58,0.08)",
+};
+
 export const WikiCard = ({
   wikiKey,
   value,
@@ -24,11 +30,10 @@ export const WikiCard = ({
 }: Props): JSX.Element => {
   const def = WIKIS[wikiKey];
   const previewUrl = def.buildUrl(previewOwner, previewRepo);
-  const brand = wikiKey === "deepwiki" ? "var(--deepwiki)" : "var(--codewiki)";
+  const brand = def.brand.from;
   const cardStyle = {
     ["--brand" as string]: brand,
-    ["--card-tint" as string]:
-      wikiKey === "deepwiki" ? "rgba(42,74,184,0.07)" : "rgba(60,107,58,0.07)",
+    ["--card-tint" as string]: CARD_TINTS[wikiKey],
   } as React.CSSProperties;
 
   return (

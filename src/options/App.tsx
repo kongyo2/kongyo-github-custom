@@ -73,6 +73,10 @@ export const App = (): JSX.Element => {
       "codewikiSummary",
       "Google's Code Wiki — explore the repository as a structured wiki.",
     ),
+    repomix: t(
+      "repomixSummary",
+      "Pack the repository into an AI-friendly single file with Repomix.",
+    ),
   };
 
   return (
@@ -85,14 +89,14 @@ export const App = (): JSX.Element => {
             <div className="section__head">
               <span className="section__numeral">II.</span>
               <h2 className="section__title">
-                {t("moduleWikiButtonsTitle", "Wiki Buttons")}
+                {t("moduleWikiButtonsTitle", "Repository Buttons")}
               </h2>
               <span className="section__rule" />
             </div>
             <p className="section__lede">
               {t(
                 "moduleWikiButtonsLede",
-                "Add DeepWiki and Code Wiki shortcuts to every GitHub repository page.",
+                "Add DeepWiki, Code Wiki, and Repomix shortcuts to every GitHub repository page.",
               )}
             </p>
 

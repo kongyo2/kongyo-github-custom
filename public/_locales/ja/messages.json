@@ -4,7 +4,7 @@
     "description": "拡張機能の表示名"
   },
   "appDescription": {
-    "message": "GitHub にカスタム機能を追加するプラガブルなブラウザ拡張。最初のモジュール: リポジトリページにDeepWikiとCode Wikiボタンを追加。",
+    "message": "GitHub にカスタム機能を追加するプラガブルなブラウザ拡張。最初のモジュール: リポジトリページにDeepWiki、Code Wiki、Repomixボタンを追加。",
     "description": "Chrome Web Storeとmanifestに表示される説明"
   },
   "optionsTitle": {
@@ -20,11 +20,11 @@
     "description": "設定ページのサブ見出し"
   },
   "moduleWikiButtonsTitle": {
-    "message": "Wiki ボタン",
+    "message": "リポジトリボタン",
     "description": "Wiki ボタンモジュールのセクションタイトル"
   },
   "moduleWikiButtonsLede": {
-    "message": "GitHubリポジトリページにDeepWikiとCode Wikiへのショートカットを追加します。",
+    "message": "GitHubリポジトリページにDeepWiki、Code Wiki、Repomixへのショートカットを追加します。",
     "description": "Wiki ボタンモジュールのリード文"
   },
   "deepwikiName": {
@@ -42,6 +42,14 @@
   "codewikiSummary": {
     "message": "GoogleのCode Wiki — リポジトリを構造化されたWikiとして閲覧できます。",
     "description": "Code Wiki連携の説明"
+  },
+  "repomixName": {
+    "message": "Repomix",
+    "description": "Repomixボタンの表示名"
+  },
+  "repomixSummary": {
+    "message": "RepomixでリポジトリをAI向けの単一ファイルにまとめます。",
+    "description": "Repomix連携の説明"
   },
   "settingDisplayStyle": {
     "message": "表示スタイル",
