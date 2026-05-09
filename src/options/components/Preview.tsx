@@ -1,52 +1,66 @@
+import type { CustomServices } from "@/lib/schemas.ts";
 import type { Settings } from "@/lib/settings.ts";
-import { WIKI_KEYS, WIKIS, type WikiKey } from "@/lib/wikis.ts";
+import { buildServiceMap, type ServiceDefinition } from "@/lib/services.ts";
 
 import { t } from "../i18n.ts";
 
-type Props = { settings: Settings };
+type Props = { settings: Settings; customServices: CustomServices };
 
 const previewOwner = "octocat";
 const previewRepo = "hello-world";
 
-const WikiButton = ({
-  wikiKey,
+const ServiceButton = ({
+  def,
   iconOnly,
   inGroup,
 }: {
-  wikiKey: WikiKey;
+  def: ServiceDefinition;
   iconOnly: boolean;
   inGroup: boolean;
-}): JSX.Element => {
-  const def = WIKIS[wikiKey];
-  return (
-    <a
-      className={[
-        "gh-btn",
-        "gh-btn--ghwb",
-        iconOnly ? "gh-btn--icon-only" : "",
-        inGroup ? "gh-btn--in-group" : "",
-      ]
-        .filter(Boolean)
-        .join(" ")}
-      data-key={wikiKey}
-      href="#"
-      onClick={(e) => e.preventDefault()}
-      title={def.label}
-      aria-label={def.label}
-    >
+}): JSX.Element => (
+  <a
+    className={[
+      "gh-btn",
+      "gh-btn--ghwb",
+      iconOnly ? "gh-btn--icon-only" : "",
+      inGroup ? "gh-btn--in-group" : "",
+    ]
+      .filter(Boolean)
+      .join(" ")}
+    data-key={def.id}
+    style={{ borderColor: def.brand.ring }}
+    href="#"
+    onClick={(e) => e.preventDefault()}
+    title={def.label}
+    aria-label={def.label}
+  >
+    {def.iconBase ? (
       <img
         src={chrome.runtime.getURL(`${def.iconBase}-64.png`)}
         alt=""
         width={14}
         height={14}
       />
-      {iconOnly ? null : def.label}
-    </a>
-  );
-};
+    ) : (
+      <span
+        className="gh-btn__chip"
+        style={{ background: def.brand.from }}
+        aria-hidden="true"
+      >
+        {(def.label.trim().charAt(0) || "?").toUpperCase()}
+      </span>
+    )}
+    {iconOnly ? null : def.label}
+  </a>
+);
 
-export const Preview = ({ settings }: Props): JSX.Element => {
-  const enabledKeys = WIKI_KEYS.filter((key) => settings.buttons[key].enabled);
+export const Preview = ({ settings, customServices }: Props): JSX.Element => {
+  const serviceMap = buildServiceMap(customServices);
+  const enabled: ServiceDefinition[] = [];
+  for (const id of settings.order) {
+    const def = serviceMap.get(id);
+    if (def && settings.buttons[id]?.enabled) enabled.push(def);
+  }
   const iconOnly = settings.display.style === "icon-only";
   const grouped = settings.display.grouping === "grouped";
 
@@ -64,23 +78,23 @@ export const Preview = ({ settings }: Props): JSX.Element => {
         <span>{previewOwner} /</span> {previewRepo}
       </p>
       <div className="preview__nav">
-        {enabledKeys.length > 0 ? (
+        {enabled.length > 0 ? (
           grouped ? (
             <div className="gh-btn-group">
-              {enabledKeys.map((key) => (
-                <WikiButton
-                  key={key}
-                  wikiKey={key}
+              {enabled.map((def) => (
+                <ServiceButton
+                  key={def.id}
+                  def={def}
                   iconOnly={iconOnly}
                   inGroup
                 />
               ))}
             </div>
           ) : (
-            enabledKeys.map((key) => (
-              <WikiButton
-                key={key}
-                wikiKey={key}
+            enabled.map((def) => (
+              <ServiceButton
+                key={def.id}
+                def={def}
                 iconOnly={iconOnly}
                 inGroup={false}
               />
@@ -97,7 +111,7 @@ export const Preview = ({ settings }: Props): JSX.Element => {
           👁 Watch
         </a>
       </div>
-      {enabledKeys.length === 0 ? (
+      {enabled.length === 0 ? (
         <p className="preview__empty">
           {t("previewEmpty", "All buttons hidden.")}
         </p>

@@ -154,5 +154,73 @@
   "footerNote": {
     "message": "Settings are saved automatically.",
     "description": "Footer note on the options page"
+  },
+  "addCustomServiceLabel": {
+    "message": "Add custom service",
+    "description": "Button that opens the custom-service form"
+  },
+  "customServiceLimitNote": {
+    "message": "Maximum of 20 custom services reached.",
+    "description": "Note shown when the user has hit the custom-service cap"
+  },
+  "customServiceSummary": {
+    "message": "Custom service — opens the URL with {owner}/{repo} substituted.",
+    "description": "Default summary shown for custom services"
+  },
+  "customLabel": {
+    "message": "Label",
+    "description": "Form field: button label"
+  },
+  "customColor": {
+    "message": "Color",
+    "description": "Form field: brand color"
+  },
+  "customUrlTemplate": {
+    "message": "URL template",
+    "description": "Form field: URL with placeholders"
+  },
+  "customUrlTemplateHint": {
+    "message": "Use {owner} and {repo} placeholders. They will be URL-encoded.",
+    "description": "Hint for the URL template field"
+  },
+  "customAddLabel": {
+    "message": "Add service",
+    "description": "Submit button to add a new custom service"
+  },
+  "customSaveLabel": {
+    "message": "Save changes",
+    "description": "Submit button when editing an existing custom service"
+  },
+  "cancelLabel": {
+    "message": "Cancel",
+    "description": "Cancel button"
+  },
+  "editLabel": {
+    "message": "Edit",
+    "description": "Edit button on a custom service card"
+  },
+  "deleteLabel": {
+    "message": "Delete",
+    "description": "Delete button on a custom service card"
+  },
+  "confirmDeleteService": {
+    "message": "Delete this service?",
+    "description": "Confirmation prompt before removing a custom service"
+  },
+  "reorderMoveUp": {
+    "message": "Move up",
+    "description": "Reorder button: move card up in the list"
+  },
+  "reorderMoveDown": {
+    "message": "Move down",
+    "description": "Reorder button: move card down in the list"
+  },
+  "settingShowButtonHint": {
+    "message": "Toggle visibility on the GitHub action bar",
+    "description": "Hint on the show-button toggle"
+  },
+  "customServicesLoadFailedNote": {
+    "message": "Couldn't read your custom services from sync. Reload the page to retry — adds and resets are paused to avoid overwriting unloaded entries.",
+    "description": "Banner shown when the initial custom-services storage read failed"
   }
 }

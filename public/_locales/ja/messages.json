@@ -154,5 +154,73 @@
   "footerNote": {
     "message": "設定は自動で保存されます。",
     "description": "設定ページのフッターノート"
+  },
+  "addCustomServiceLabel": {
+    "message": "カスタムサービスを追加",
+    "description": "カスタムサービス入力フォームを開くボタン"
+  },
+  "customServiceLimitNote": {
+    "message": "カスタムサービスの上限（20件）に達しました。",
+    "description": "カスタムサービス上限到達時の注釈"
+  },
+  "customServiceSummary": {
+    "message": "カスタムサービス — {owner}/{repo} を埋め込んだ URL を開きます。",
+    "description": "カスタムサービスのデフォルト説明文"
+  },
+  "customLabel": {
+    "message": "ラベル",
+    "description": "フォーム項目: ボタンラベル"
+  },
+  "customColor": {
+    "message": "カラー",
+    "description": "フォーム項目: ブランドカラー"
+  },
+  "customUrlTemplate": {
+    "message": "URL テンプレート",
+    "description": "フォーム項目: プレースホルダ付き URL"
+  },
+  "customUrlTemplateHint": {
+    "message": "{owner} と {repo} のプレースホルダを利用できます（自動で URL エンコードされます）。",
+    "description": "URL テンプレート欄のヒント"
+  },
+  "customAddLabel": {
+    "message": "サービスを追加",
+    "description": "カスタムサービスの追加実行ボタン"
+  },
+  "customSaveLabel": {
+    "message": "変更を保存",
+    "description": "カスタムサービスの編集を保存するボタン"
+  },
+  "cancelLabel": {
+    "message": "キャンセル",
+    "description": "キャンセルボタン"
+  },
+  "editLabel": {
+    "message": "編集",
+    "description": "カスタムサービスの編集ボタン"
+  },
+  "deleteLabel": {
+    "message": "削除",
+    "description": "カスタムサービスの削除ボタン"
+  },
+  "confirmDeleteService": {
+    "message": "このサービスを削除しますか？",
+    "description": "カスタムサービス削除の確認"
+  },
+  "reorderMoveUp": {
+    "message": "上へ移動",
+    "description": "並び替え: カードを上へ"
+  },
+  "reorderMoveDown": {
+    "message": "下へ移動",
+    "description": "並び替え: カードを下へ"
+  },
+  "settingShowButtonHint": {
+    "message": "GitHub のアクションバーでの表示を切り替え",
+    "description": "ボタン表示トグルのヒント"
+  },
+  "customServicesLoadFailedNote": {
+    "message": "カスタムサービスの読み込みに失敗しました。読み込めていない項目を上書きしないため、追加とリセットを一時停止しています。ページをリロードして再試行してください。",
+    "description": "カスタムサービスの初期読み込みが失敗したときに表示する案内"
   }
 }

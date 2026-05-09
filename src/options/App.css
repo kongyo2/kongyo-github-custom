@@ -418,6 +418,245 @@
   gap: 10px;
 }
 
+.card__icon-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  color: #fff;
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 14px;
+  letter-spacing: 0;
+}
+
+.card__actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+
+.card__reorder {
+  display: inline-flex;
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--paper);
+}
+
+.card__reorder-btn {
+  font-family: var(--mono);
+  font-size: 13px;
+  padding: 4px 12px;
+  color: var(--ink-soft);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition:
+    background 160ms ease,
+    color 160ms ease;
+}
+
+.card__reorder-btn + .card__reorder-btn {
+  border-left: 1px solid var(--rule);
+}
+
+.card__reorder-btn:hover:not(:disabled) {
+  background: var(--paper-deep);
+  color: var(--ink);
+}
+
+.card__reorder-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.card__action-btn {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--rule);
+  color: var(--ink-soft);
+  background: var(--paper);
+  cursor: pointer;
+  transition:
+    background 160ms ease,
+    color 160ms ease,
+    border-color 160ms ease;
+}
+
+.card__action-btn:hover {
+  background: var(--ink);
+  color: var(--paper);
+  border-color: var(--ink);
+}
+
+.card__action-btn--danger:hover {
+  background: #b73033;
+  border-color: #b73033;
+}
+
+/* ───────────────────────── Custom service form ───────────────────────── */
+
+.custom-section {
+  margin-top: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.custom-section__note {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.custom-add-btn {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink);
+  border: 1px dashed var(--rule);
+  background: transparent;
+  padding: 14px 18px;
+  border-radius: 12px;
+  transition:
+    background 180ms ease,
+    border-color 180ms ease;
+  cursor: pointer;
+}
+
+.custom-add-btn:hover:not(:disabled) {
+  background: var(--paper-soft);
+  border-color: var(--ink);
+}
+
+.custom-add-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.custom-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 18px 20px;
+  background: var(--paper-soft);
+  border: 1px solid rgba(138, 127, 106, 0.45);
+  border-radius: 14px;
+}
+
+.custom-form__row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 14px;
+}
+
+.custom-form__field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.custom-form__field--color {
+  width: 86px;
+}
+
+.custom-form__label {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.custom-form__input {
+  font: inherit;
+  padding: 8px 12px;
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  color: var(--ink);
+}
+
+.custom-form__input--mono {
+  font-family: var(--mono);
+  font-size: 13px;
+}
+
+.custom-form__input:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.custom-form__color {
+  width: 100%;
+  height: 38px;
+  padding: 2px;
+  border-radius: 8px;
+  border: 1px solid var(--rule);
+  background: var(--paper);
+  cursor: pointer;
+}
+
+.custom-form__hint {
+  font-size: 12px;
+  color: var(--ink-faint);
+}
+
+.custom-form__error {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: #b73033;
+}
+
+.custom-form__actions {
+  display: flex;
+  gap: 10px;
+}
+
+.custom-form__submit,
+.custom-form__cancel {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  padding: 9px 18px;
+  border-radius: 999px;
+  cursor: pointer;
+  border: 1px solid var(--rule);
+  transition:
+    background 180ms ease,
+    color 180ms ease,
+    border-color 180ms ease;
+}
+
+.custom-form__submit {
+  background: var(--ink);
+  color: var(--paper);
+  border-color: var(--ink);
+}
+
+.custom-form__cancel {
+  background: transparent;
+  color: var(--ink-soft);
+}
+
+.custom-form__cancel:hover {
+  background: var(--paper);
+  color: var(--ink);
+}
+
 /* ───────────────────────── Toggle row ───────────────────────── */
 
 .toggle {
@@ -665,6 +904,19 @@ input.toggle__input:focus-visible + .toggle__switch {
   width: 14px;
   height: 14px;
   border-radius: 3px;
+}
+
+.gh-btn__chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  color: #fff;
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1;
 }
 
 .gh-btn--ghwb[data-key="deepwiki"] {
