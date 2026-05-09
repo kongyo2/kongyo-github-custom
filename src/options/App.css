@@ -98,31 +98,6 @@
   margin-top: -6px;
 }
 
-.hero__byline {
-  margin-top: 34px;
-  padding-top: 18px;
-  border-top: 1px dashed var(--rule);
-  font-family: var(--mono);
-  font-size: 11px;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--ink-faint);
-  display: flex;
-  flex-wrap: wrap;
-  gap: 14px;
-}
-
-.hero__byline span::before {
-  content: "·";
-  margin-right: 14px;
-  color: var(--rule);
-}
-
-.hero__byline span:first-child::before {
-  content: none;
-  margin-right: 0;
-}
-
 /* ───────────────────────── Sections ───────────────────────── */
 
 .column {

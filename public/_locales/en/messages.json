@@ -4,7 +4,7 @@
     "description": "The display name of the extension"
   },
   "appDescription": {
-    "message": "A pluggable browser extension that adds custom enhancements to GitHub. First module: DeepWiki, Code Wiki, and Repomix buttons on repository pages.",
+    "message": "Adds DeepWiki, Code Wiki, and Repomix buttons to GitHub repository pages.",
     "description": "The description shown in the Chrome Web Store and the manifest"
   },
   "optionsTitle": {
@@ -16,16 +16,28 @@
     "description": "The hero heading on the options page"
   },
   "optionsSubhead": {
-    "message": "A pluggable suite of GitHub enhancements. Configure each module below.",
+    "message": "Configure the buttons shown on GitHub repository pages.",
     "description": "Subheading shown beneath the hero on the options page"
   },
-  "moduleWikiButtonsTitle": {
-    "message": "Repository Buttons",
-    "description": "Section title for the Wiki buttons module"
+  "settingsLabel": {
+    "message": "Settings",
+    "description": "Short label shown in the options page masthead"
   },
-  "moduleWikiButtonsLede": {
+  "heroCopyButtons": {
+    "message": "Add shortcuts for DeepWiki, Code Wiki, and Repomix next to the repository action bar.",
+    "description": "Options page hero copy describing the injected buttons"
+  },
+  "heroCopySettings": {
+    "message": "Choose which buttons appear, how they are grouped, and whether they open in a new tab.",
+    "description": "Options page hero copy describing available settings"
+  },
+  "repositoryButtonsTitle": {
+    "message": "Repository Buttons",
+    "description": "Section title for repository button settings"
+  },
+  "repositoryButtonsLede": {
     "message": "Add DeepWiki, Code Wiki, and Repomix shortcuts to every GitHub repository page.",
-    "description": "Lede for the Wiki buttons module"
+    "description": "Lede for repository button settings"
   },
   "deepwikiName": {
     "message": "DeepWiki",
@@ -135,8 +147,12 @@
     "message": "Live preview",
     "description": "Label above the preview area"
   },
+  "previewEmpty": {
+    "message": "All buttons hidden.",
+    "description": "Shown in the preview when all repository buttons are disabled"
+  },
   "footerNote": {
-    "message": "Settings sync across the browsers you are signed into.",
+    "message": "Settings are saved automatically.",
     "description": "Footer note on the options page"
   }
 }

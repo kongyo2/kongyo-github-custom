@@ -98,7 +98,9 @@ export const Preview = ({ settings }: Props): JSX.Element => {
         </a>
       </div>
       {enabledKeys.length === 0 ? (
-        <p className="preview__empty">All Wiki buttons hidden.</p>
+        <p className="preview__empty">
+          {t("previewEmpty", "All buttons hidden.")}
+        </p>
       ) : null}
     </section>
   );

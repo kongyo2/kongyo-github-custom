@@ -14,7 +14,7 @@ const formatDate = (): string => {
 export const Hero = (): JSX.Element => (
   <header className="hero">
     <div className="hero__masthead">
-      <span className="hero__edition">Vol. I · Settings Edition</span>
+      <span className="hero__edition">{t("settingsLabel", "Settings")}</span>
       <span className="hero__date">{formatDate()}</span>
     </div>
     <h1 className="hero__title">
@@ -25,22 +25,20 @@ export const Hero = (): JSX.Element => (
     <p className="hero__lede">
       {t(
         "optionsSubhead",
-        "A pluggable suite of GitHub enhancements. Configure each module below.",
+        "Configure the buttons shown on GitHub repository pages.",
       )}
     </p>
     <p className="hero__copy">
-      Modules ship one at a time. Each gets its own card on the right, with its
-      own toggles. Disabling a module hides every UI surface it injects.
+      {t(
+        "heroCopyButtons",
+        "Add shortcuts for DeepWiki, Code Wiki, and Repomix next to the repository action bar.",
+      )}
     </p>
     <p className="hero__copy">
-      The inaugural module — <em>Repository Buttons</em> — pins DeepWiki, Code
-      Wiki, and Repomix shortcuts next to every repository's Watch / Fork / Star
-      bar. More modules will land in this same panel.
+      {t(
+        "heroCopySettings",
+        "Choose which buttons appear, how they are grouped, and whether they open in a new tab.",
+      )}
     </p>
-    <div className="hero__byline">
-      <span>Edited locally</span>
-      <span>Synced via chrome.storage</span>
-      <span>Open source</span>
-    </div>
   </header>
 );

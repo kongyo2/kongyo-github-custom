@@ -4,7 +4,7 @@
     "description": "拡張機能の表示名"
   },
   "appDescription": {
-    "message": "GitHub にカスタム機能を追加するプラガブルなブラウザ拡張。最初のモジュール: リポジトリページにDeepWiki、Code Wiki、Repomixボタンを追加。",
+    "message": "GitHub のリポジトリページに DeepWiki、Code Wiki、Repomix のボタンを追加します。",
     "description": "Chrome Web Storeとmanifestに表示される説明"
   },
   "optionsTitle": {
@@ -16,16 +16,28 @@
     "description": "設定ページのヒーロー見出し"
   },
   "optionsSubhead": {
-    "message": "GitHub 用カスタム機能のスイート。各モジュールを下で設定できます。",
+    "message": "GitHub リポジトリページに表示するボタンを設定します。",
     "description": "設定ページのサブ見出し"
   },
-  "moduleWikiButtonsTitle": {
-    "message": "リポジトリボタン",
-    "description": "Wiki ボタンモジュールのセクションタイトル"
+  "settingsLabel": {
+    "message": "設定",
+    "description": "設定ページ上部に表示する短いラベル"
   },
-  "moduleWikiButtonsLede": {
+  "heroCopyButtons": {
+    "message": "DeepWiki、Code Wiki、Repomix へのショートカットをリポジトリの操作ボタン横に追加します。",
+    "description": "追加されるボタンの説明"
+  },
+  "heroCopySettings": {
+    "message": "表示するボタン、並び方、新しいタブで開くかを選択できます。",
+    "description": "設定できる項目の説明"
+  },
+  "repositoryButtonsTitle": {
+    "message": "リポジトリボタン",
+    "description": "リポジトリボタン設定のセクションタイトル"
+  },
+  "repositoryButtonsLede": {
     "message": "GitHubリポジトリページにDeepWiki、Code Wiki、Repomixへのショートカットを追加します。",
-    "description": "Wiki ボタンモジュールのリード文"
+    "description": "リポジトリボタン設定のリード文"
   },
   "deepwikiName": {
     "message": "DeepWiki",
@@ -135,8 +147,12 @@
     "message": "プレビュー",
     "description": "プレビュー領域のラベル"
   },
+  "previewEmpty": {
+    "message": "すべてのボタンが非表示です。",
+    "description": "すべてのリポジトリボタンが無効な場合にプレビューへ表示"
+  },
   "footerNote": {
-    "message": "設定はサインインしているブラウザ間で同期されます。",
+    "message": "設定は自動で保存されます。",
     "description": "設定ページのフッターノート"
   }
 }

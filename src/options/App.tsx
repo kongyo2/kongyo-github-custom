@@ -87,15 +87,15 @@ export const App = (): JSX.Element => {
         <div className="column">
           <section className="section">
             <div className="section__head">
-              <span className="section__numeral">II.</span>
+              <span className="section__numeral">I.</span>
               <h2 className="section__title">
-                {t("moduleWikiButtonsTitle", "Repository Buttons")}
+                {t("repositoryButtonsTitle", "Repository Buttons")}
               </h2>
               <span className="section__rule" />
             </div>
             <p className="section__lede">
               {t(
-                "moduleWikiButtonsLede",
+                "repositoryButtonsLede",
                 "Add DeepWiki, Code Wiki, and Repomix shortcuts to every GitHub repository page.",
               )}
             </p>
@@ -223,17 +223,14 @@ export const App = (): JSX.Element => {
                 ↺ {t("settingsResetLabel", "Restore defaults")}
               </button>
               <span className="actions__note">
-                {t(
-                  "footerNote",
-                  "Settings sync across the browsers you are signed into.",
-                )}
+                {t("footerNote", "Settings are saved automatically.")}
               </span>
             </div>
           </section>
 
           <section className="section">
             <div className="section__head">
-              <span className="section__numeral">III.</span>
+              <span className="section__numeral">II.</span>
               <h2 className="section__title">
                 {t("previewLabel", "Live preview")}
               </h2>
