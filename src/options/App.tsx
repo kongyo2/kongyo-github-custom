@@ -133,11 +133,6 @@ export const App = (): JSX.Element => {
     void saveSettings(next).then(showToast);
   };
 
-  const persistCustom = (next: CustomServices): void => {
-    setCustomServices(next);
-    void saveCustomServices(next).then(showToast);
-  };
-
   const moveService = (id: string, delta: -1 | 1): void => {
     const idx = settings.order.indexOf(id);
     if (idx === -1) return;
@@ -150,27 +145,73 @@ export const App = (): JSX.Element => {
     persistSettings({ ...settings, order: next });
   };
 
-  const handleAddCustom = (svc: CustomService): void => {
-    persistCustom([...customServices, svc]);
-    persistSettings({
+  const handleAddCustom = async (svc: CustomService): Promise<void> => {
+    const nextCustom = [...customServices, svc];
+    const nextSettings: Settings = {
       ...settings,
       buttons: {
         ...settings.buttons,
         [svc.id]: { enabled: true, openInNewTab: true },
       },
       order: [...settings.order, svc.id],
-    });
+    };
+    try {
+      await saveCustomServices(nextCustom);
+    } catch {
+      return;
+    }
+    setCustomServices(nextCustom);
+    setSettings(nextSettings);
+    showToast();
+    try {
+      await saveSettings(nextSettings);
+    } catch {
+      // Custom service is persisted; settings will reconcile on next save.
+    }
     setShowAdd(false);
   };
 
-  const handleUpdateCustom = (svc: CustomService): void => {
-    persistCustom(customServices.map((c) => (c.id === svc.id ? svc : c)));
+  const handleUpdateCustom = async (svc: CustomService): Promise<void> => {
+    if (!customServices.some((c) => c.id === svc.id)) {
+      // The service was deleted while the form was open.
+      setEditingService(null);
+      return;
+    }
+    const next = customServices.map((c) => (c.id === svc.id ? svc : c));
+    try {
+      await saveCustomServices(next);
+    } catch {
+      return;
+    }
+    setCustomServices(next);
+    showToast();
     setEditingService(null);
   };
 
-  const handleDeleteCustom = (id: string): void => {
+  const handleDeleteCustom = async (id: string): Promise<void> => {
     if (!confirm(t("confirmDeleteService", "Delete this service?"))) return;
-    persistCustom(customServices.filter((c) => c.id !== id));
+    const nextCustom = customServices.filter((c) => c.id !== id);
+    const nextButtons = { ...settings.buttons };
+    delete nextButtons[id];
+    const nextSettings: Settings = {
+      ...settings,
+      buttons: nextButtons,
+      order: settings.order.filter((x) => x !== id),
+    };
+    try {
+      await saveCustomServices(nextCustom);
+    } catch {
+      return;
+    }
+    setCustomServices(nextCustom);
+    setSettings(nextSettings);
+    if (editingService?.id === id) setEditingService(null);
+    showToast();
+    try {
+      await saveSettings(nextSettings);
+    } catch {
+      // Custom service removal landed; settings cleanup will retry on next save.
+    }
   };
 
   return (
