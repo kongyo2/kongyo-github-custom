@@ -162,15 +162,27 @@ const ensureRendered = (): void => {
 };
 
 const start = async (): Promise<void> => {
-  try {
-    const [s, custom] = await Promise.all([
-      loadSettings(),
-      loadCustomServices(),
-    ]);
-    currentCustomServices = custom;
-    currentSettings = reconcileSettings(s, collectAvailableIds());
-  } catch {
-    // Keep rendering with defaults when synced settings are unavailable.
+  // Load each datasource independently so a custom-services read failure
+  // does not throw away otherwise readable settings (and vice versa).
+  const [settingsResult, customResult] = await Promise.allSettled([
+    loadSettings(),
+    loadCustomServices(),
+  ]);
+  if (customResult.status === "fulfilled") {
+    currentCustomServices = customResult.value;
+  }
+  if (settingsResult.status === "fulfilled") {
+    currentSettings = reconcileSettings(
+      settingsResult.value,
+      collectAvailableIds(),
+    );
+  } else {
+    // No saved settings, but the available service set may still differ from
+    // DEFAULT_SETTINGS' built-in-only order if custom services loaded.
+    currentSettings = reconcileSettings(
+      DEFAULT_SETTINGS,
+      collectAvailableIds(),
+    );
   }
 
   scheduleRender();

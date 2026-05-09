@@ -109,12 +109,20 @@ export const App = (): JSX.Element => {
 
   useEffect(() => {
     let alive = true;
-    void Promise.all([loadSettings(), loadCustomServices()]).then(
-      ([s, custom]) => {
+    void Promise.allSettled([loadSettings(), loadCustomServices()]).then(
+      ([settingsResult, customResult]) => {
         if (!alive) return;
+        const custom: CustomServices =
+          customResult.status === "fulfilled" ? customResult.value : [];
         setCustomServices(custom);
         const map = buildServiceMap(custom);
-        setSettings(reconcileSettings(s, Array.from(map.keys())));
+        const baseSettings: Settings =
+          settingsResult.status === "fulfilled"
+            ? settingsResult.value
+            : DEFAULT_SETTINGS;
+        setSettings(reconcileSettings(baseSettings, Array.from(map.keys())));
+        // Always unblock the UI — even on transient sync failures we can
+        // still operate against defaults rather than leaving the page inert.
         setLoaded(true);
       },
     );
