@@ -187,7 +187,7 @@
 }
 
 .display-panel::before {
-  content: "Display";
+  content: attr(data-legend);
   position: absolute;
   top: -10px;
   left: 16px;
@@ -884,15 +884,16 @@ input.toggle__input:focus-visible + .toggle__switch {
   background: #21262d;
   color: #c9d1d9;
   border: 1px solid #30363d;
-  border-right-width: 0;
   padding: 4px 12px;
   font-size: 12px;
   font-family: var(--sans);
   line-height: 20px;
+  border-radius: 6px;
 }
 
-.gh-btn:last-child {
-  border-right-width: 1px;
+/* Collapse inner borders only for buttons fused into a group. */
+.gh-btn-group .gh-btn:not(:last-child) {
+  border-right-width: 0;
 }
 
 .gh-btn--ghwb {
@@ -966,6 +967,11 @@ input.toggle__input:focus-visible + .toggle__switch {
 .toast[data-show="true"] {
   opacity: 1;
   transform: translateX(-50%) translateY(0);
+}
+
+.toast[data-kind="error"] {
+  background: #b73033;
+  color: #fff;
 }
 
 /* ───────────────────────── Animations ───────────────────────── */

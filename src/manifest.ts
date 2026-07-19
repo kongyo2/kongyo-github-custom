@@ -9,7 +9,8 @@ export default defineManifest({
   description: "__MSG_appDescription__",
   version: pkg.version,
   default_locale: "en",
-  minimum_chrome_version: "102",
+  // AbortSignal.timeout() (used by the existence check) requires Chrome 103.
+  minimum_chrome_version: "103",
 
   icons: {
     "16": "images/icon-16.png",
@@ -46,22 +47,12 @@ export default defineManifest({
 
   web_accessible_resources: [
     {
+      // Only the 64px icons are ever loaded from the GitHub page; exposing
+      // nothing else keeps the fingerprinting surface minimal.
       resources: [
-        "images/deepwiki-16.png",
-        "images/deepwiki-32.png",
-        "images/deepwiki-48.png",
         "images/deepwiki-64.png",
-        "images/deepwiki-128.png",
-        "images/codewiki-16.png",
-        "images/codewiki-32.png",
-        "images/codewiki-48.png",
         "images/codewiki-64.png",
-        "images/codewiki-128.png",
-        "images/repomix-16.png",
-        "images/repomix-32.png",
-        "images/repomix-48.png",
         "images/repomix-64.png",
-        "images/repomix-128.png",
       ],
       matches: ["https://github.com/*"],
     },

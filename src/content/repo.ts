@@ -32,6 +32,11 @@ const RESERVED_OWNERS: ReadonlySet<string> = new Set([
   "security",
   "codespaces",
   "sessions",
+  "advisories",
+  "apps",
+  "organizations",
+  "stars",
+  "users",
 ]);
 
 export const parseRepoFromPath = (

@@ -5,9 +5,7 @@ import {
   type BuiltInServiceId,
   type ExistenceCheckConfig,
 } from "./builtInServices.ts";
-import type { CustomService } from "./schemas.ts";
-
-export const CUSTOM_SERVICE_PREFIX = "custom:";
+import { CUSTOM_ID_PREFIX, type CustomService } from "./schemas.ts";
 
 export type ServiceKind = "built-in" | "custom";
 
@@ -25,34 +23,30 @@ export type ServiceDefinition = {
   existenceCheck?: ExistenceCheckConfig;
 };
 
+/** Expand shorthand `#abc` to `#aabbcc`; longhand values pass through. */
+const normalizeHex = (hex: string): string =>
+  hex.length === 4
+    ? `#${hex[1]!}${hex[1]!}${hex[2]!}${hex[2]!}${hex[3]!}${hex[3]!}`
+    : hex;
+
+const hexChannels = (hex: string): [number, number, number] => {
+  const normalized = normalizeHex(hex);
+  return [
+    parseInt(normalized.slice(1, 3), 16),
+    parseInt(normalized.slice(3, 5), 16),
+    parseInt(normalized.slice(5, 7), 16),
+  ];
+};
+
+const clampChannel = (n: number): number => Math.max(0, Math.min(255, n));
+
 const adjustHex = (hex: string, delta: number): string => {
-  const normalized =
-    hex.length === 4
-      ? `#${hex[1]!}${hex[1]!}${hex[2]!}${hex[2]!}${hex[3]!}${hex[3]!}`
-      : hex;
-  const r = Math.max(
-    0,
-    Math.min(255, parseInt(normalized.slice(1, 3), 16) + delta),
-  );
-  const g = Math.max(
-    0,
-    Math.min(255, parseInt(normalized.slice(3, 5), 16) + delta),
-  );
-  const b = Math.max(
-    0,
-    Math.min(255, parseInt(normalized.slice(5, 7), 16) + delta),
-  );
-  return `#${[r, g, b].map((n) => n.toString(16).padStart(2, "0")).join("")}`;
+  const channels = hexChannels(hex).map((c) => clampChannel(c + delta));
+  return `#${channels.map((n) => n.toString(16).padStart(2, "0")).join("")}`;
 };
 
 const hexToRgba = (hex: string, alpha: number): string => {
-  const normalized =
-    hex.length === 4
-      ? `#${hex[1]!}${hex[1]!}${hex[2]!}${hex[2]!}${hex[3]!}${hex[3]!}`
-      : hex;
-  const r = parseInt(normalized.slice(1, 3), 16);
-  const g = parseInt(normalized.slice(3, 5), 16);
-  const b = parseInt(normalized.slice(5, 7), 16);
+  const [r, g, b] = hexChannels(hex);
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 };
 
@@ -95,30 +89,17 @@ const builtInToServiceDefinition = (
   };
 };
 
-export const isBuiltInServiceId = (id: string): id is BuiltInServiceId =>
-  (BUILT_IN_SERVICE_IDS as readonly string[]).includes(id);
-
 export const buildServiceDefinitions = (
   customServices: readonly CustomService[],
-): ServiceDefinition[] => {
-  const list: ServiceDefinition[] = BUILT_IN_SERVICE_IDS.map(
-    builtInToServiceDefinition,
-  );
-  for (const svc of customServices) {
-    list.push(customToServiceDefinition(svc));
-  }
-  return list;
-};
+): ServiceDefinition[] => [
+  ...BUILT_IN_SERVICE_IDS.map(builtInToServiceDefinition),
+  ...customServices.map(customToServiceDefinition),
+];
 
 export const buildServiceMap = (
   customServices: readonly CustomService[],
-): Map<string, ServiceDefinition> => {
-  const map = new Map<string, ServiceDefinition>();
-  for (const def of buildServiceDefinitions(customServices)) {
-    map.set(def.id, def);
-  }
-  return map;
-};
+): Map<string, ServiceDefinition> =>
+  new Map(buildServiceDefinitions(customServices).map((def) => [def.id, def]));
 
 export const generateCustomServiceId = (): string =>
-  `${CUSTOM_SERVICE_PREFIX}${crypto.randomUUID()}`;
+  `${CUSTOM_ID_PREFIX}${crypto.randomUUID()}`;

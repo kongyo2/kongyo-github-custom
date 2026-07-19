@@ -139,6 +139,14 @@
     "message": "設定を保存しました。",
     "description": "保存後に表示されるトースト"
   },
+  "settingsSaveFailedToast": {
+    "message": "設定を保存できませんでした。もう一度お試しください。",
+    "description": "同期ストレージへの保存が失敗したときのトースト"
+  },
+  "displayLegend": {
+    "message": "表示",
+    "description": "表示設定パネルの凡例ラベル"
+  },
   "settingsResetLabel": {
     "message": "デフォルトに戻す",
     "description": "デフォルト設定に戻すボタン"
@@ -222,5 +230,49 @@
   "customServicesLoadFailedNote": {
     "message": "カスタムサービスの読み込みに失敗しました。読み込めていない項目を上書きしないため、追加とリセットを一時停止しています。ページをリロードして再試行してください。",
     "description": "カスタムサービスの初期読み込みが失敗したときに表示する案内"
+  },
+  "customLabelInvalid": {
+    "message": "ラベルを入力してください（1〜40文字）。",
+    "description": "ラベル欄のバリデーションエラー"
+  },
+  "customUrlProtocolInvalid": {
+    "message": "URL は http:// または https:// で始めてください。",
+    "description": "URL テンプレートのスキームが不正なときのエラー"
+  },
+  "customUrlNeedsPlaceholders": {
+    "message": "{owner} と {repo} の両方のプレースホルダを含めてください。",
+    "description": "URL テンプレートにプレースホルダがないときのエラー"
+  },
+  "customUrlInvalid": {
+    "message": "有効な URL テンプレートを入力してください（最大400文字）。",
+    "description": "URL テンプレート欄の汎用バリデーションエラー"
+  },
+  "customColorInvalid": {
+    "message": "カラーは #aabbcc 形式の16進数で指定してください。",
+    "description": "カラー欄のバリデーションエラー"
+  },
+  "customIdCollision": {
+    "message": "この ID のサービスは既に存在します。",
+    "description": "生成されたサービス ID が衝突したときのエラー"
+  },
+  "existenceCheckingTitle": {
+    "message": "$label$ — 確認中…",
+    "description": "存在チェック実行中のボタンツールチップ",
+    "placeholders": {
+      "label": {
+        "content": "$1",
+        "example": "DeepWiki"
+      }
+    }
+  },
+  "existenceMissingTitle": {
+    "message": "$label$ — このリポジトリはまだインデックスされていません",
+    "description": "対象ページが存在しないときのボタンツールチップ",
+    "placeholders": {
+      "label": {
+        "content": "$1",
+        "example": "DeepWiki"
+      }
+    }
   }
 }

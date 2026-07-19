@@ -1,3 +1,5 @@
+import { useMemo } from "react";
+
 import type { CustomServices } from "@/lib/schemas.ts";
 import type { Settings } from "@/lib/settings.ts";
 import { buildServiceMap, type ServiceDefinition } from "@/lib/services.ts";
@@ -55,7 +57,10 @@ const ServiceButton = ({
 );
 
 export const Preview = ({ settings, customServices }: Props): JSX.Element => {
-  const serviceMap = buildServiceMap(customServices);
+  const serviceMap = useMemo(
+    () => buildServiceMap(customServices),
+    [customServices],
+  );
   const enabled: ServiceDefinition[] = [];
   for (const id of settings.order) {
     const def = serviceMap.get(id);

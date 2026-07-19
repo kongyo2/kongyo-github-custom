@@ -19,6 +19,44 @@ const blankDraft = (): CustomService => ({
   color: "#6e6e6e",
 });
 
+/**
+ * Map a failed field to a localized message. The zod schema carries English
+ * messages only, so the specific failure is re-derived from the draft here.
+ */
+const fieldError = (
+  field: string,
+  draft: CustomService,
+  fallback: string,
+): string => {
+  switch (field) {
+    case "label":
+      return t("customLabelInvalid", "Enter a label (1–40 characters).");
+    case "urlTemplate": {
+      const url = draft.urlTemplate.trim();
+      if (!/^https?:\/\//i.test(url)) {
+        return t(
+          "customUrlProtocolInvalid",
+          "URL must start with http:// or https://.",
+        );
+      }
+      if (!url.includes("{owner}") || !url.includes("{repo}")) {
+        return t(
+          "customUrlNeedsPlaceholders",
+          "Include both {owner} and {repo} placeholders.",
+        );
+      }
+      return t(
+        "customUrlInvalid",
+        "Enter a valid URL template (max 400 characters).",
+      );
+    }
+    case "color":
+      return t("customColorInvalid", "Color must be a hex value like #aabbcc.");
+    default:
+      return fallback;
+  }
+};
+
 export const CustomServiceForm = ({
   initial,
   existingIds,
@@ -42,13 +80,17 @@ export const CustomServiceForm = ({
       const next: Record<string, string> = {};
       for (const issue of parsed.error.issues) {
         const path = issue.path[0];
-        if (typeof path === "string") next[path] = issue.message;
+        if (typeof path === "string" && !(path in next)) {
+          next[path] = fieldError(path, draft, issue.message);
+        }
       }
       setErrors(next);
       return;
     }
     if (!initial && existingIds.includes(parsed.data.id)) {
-      setErrors({ id: "A service with this id already exists" });
+      setErrors({
+        id: t("customIdCollision", "A service with this id already exists."),
+      });
       return;
     }
     setErrors({});
@@ -69,6 +111,7 @@ export const CustomServiceForm = ({
             maxLength={40}
             placeholder="GitHub.dev"
             onChange={(e) => update("label", e.target.value)}
+            aria-invalid={Boolean(errors["label"])}
             required
           />
           {errors["label"] ? (
@@ -98,6 +141,7 @@ export const CustomServiceForm = ({
           maxLength={400}
           placeholder="https://example.com/{owner}/{repo}"
           onChange={(e) => update("urlTemplate", e.target.value)}
+          aria-invalid={Boolean(errors["urlTemplate"])}
           required
         />
         <span className="custom-form__hint">
@@ -108,6 +152,9 @@ export const CustomServiceForm = ({
         </span>
         {errors["urlTemplate"] ? (
           <span className="custom-form__error">{errors["urlTemplate"]}</span>
+        ) : null}
+        {errors["id"] ? (
+          <span className="custom-form__error">{errors["id"]}</span>
         ) : null}
       </label>
       <div className="custom-form__actions">
