@@ -32,3 +32,13 @@ jobs:
 
       - name: Build
         run: npm run build
+
+      - name: Package (zip)
+        run: node scripts/zip.mjs
+
+      - name: Upload store package
+        uses: actions/upload-artifact@v4
+        with:
+          name: extension-zip
+          path: release/*.zip
+          if-no-files-found: error

@@ -18,23 +18,76 @@ import { buildButton, CONTAINER_CLASS, removeRenderedNodes } from "./render.ts";
 
 import "./styles.css";
 
+declare global {
+  interface Window {
+    /** Set once per isolated world to guard against double injection. */
+    __ghwbContentScriptLoaded?: true;
+  }
+}
+
 const NAV_SELECTOR = "ul.pagehead-actions";
+/** GitHub keeps morphing the page briefly after a soft navigation. */
+const NAV_SETTLE_DELAY_MS = 200;
+/** Turbo / soft-nav events GitHub dispatches on document after navigation. */
+const DOCUMENT_NAV_EVENTS = [
+  "turbo:load",
+  "turbo:render",
+  "soft-nav:success",
+] as const;
+/** Browser-level events that can also swap the visible page. */
+const WINDOW_NAV_EVENTS = ["popstate", "pageshow"] as const;
 
 let currentSettings: Settings = DEFAULT_SETTINGS;
 let currentCustomServices: CustomServices = [];
+let serviceMap = buildServiceMap(currentCustomServices);
+/** Bumped on every settings / custom-services change to invalidate renders. */
+let stateRevision = 0;
 let renderEpoch = 0;
 let renderScheduled = false;
+/** Signature + node count of the last completed render, for idempotence. */
+let renderedSignature: string | null = null;
+let renderedCount = 0;
 
-const collectAvailableIds = (): string[] => {
-  const map = buildServiceMap(currentCustomServices);
-  return Array.from(map.keys());
+const teardownCallbacks: (() => void)[] = [];
+
+/**
+ * After the extension is updated or reloaded, this world keeps running but
+ * every `chrome.*` call throws ("Extension context invalidated"). Detect that
+ * and shut down cleanly — already-rendered buttons stay behind as plain links.
+ */
+const isExtensionAlive = (): boolean => {
+  try {
+    return typeof chrome !== "undefined" && Boolean(chrome.runtime?.id);
+  } catch {
+    return false;
+  }
 };
 
+const teardown = (): void => {
+  for (const callback of teardownCallbacks.splice(0)) {
+    try {
+      callback();
+    } catch {
+      // Best-effort cleanup; the world is going away anyway.
+    }
+  }
+};
+
+const i18nOr = (key: string, subs: string[], fallback: string): string => {
+  const msg = chrome.i18n.getMessage(key, subs);
+  return msg && msg.length > 0 ? msg : fallback;
+};
+
+const refreshServiceMap = (): void => {
+  serviceMap = buildServiceMap(currentCustomServices);
+};
+
+const collectAvailableIds = (): string[] => Array.from(serviceMap.keys());
+
 const enabledOrderedServices = (): ServiceDefinition[] => {
-  const map = buildServiceMap(currentCustomServices);
   const out: ServiceDefinition[] = [];
   for (const id of currentSettings.order) {
-    const def = map.get(id);
+    const def = serviceMap.get(id);
     if (!def) continue;
     if (!currentSettings.buttons[id]?.enabled) continue;
     out.push(def);
@@ -54,7 +107,16 @@ const verifyExistence = (
 
   button.classList.add("ghwb-button--checking");
   const previousTitle = button.title;
-  button.title = `${def.label} — checking…`;
+  button.title = i18nOr(
+    "existenceCheckingTitle",
+    [def.label],
+    `${def.label} — checking…`,
+  );
+
+  const restore = (): void => {
+    button.classList.remove("ghwb-button--checking");
+    button.title = previousTitle;
+  };
 
   const request: WikiExistsRequest = {
     type: "wiki-exists",
@@ -62,27 +124,56 @@ const verifyExistence = (
     owner,
     repo,
   };
-  void chrome.runtime
-    .sendMessage(request)
-    .then((res: WikiExistsResponse | undefined) => {
+  let response: Promise<WikiExistsResponse | undefined>;
+  try {
+    response = chrome.runtime.sendMessage(request);
+  } catch {
+    // Extension context died between render and check.
+    restore();
+    return;
+  }
+  void response
+    .then((res) => {
       if (epoch !== renderEpoch) return;
       if (!button.isConnected) return;
-      button.classList.remove("ghwb-button--checking");
-      button.title = previousTitle;
+      restore();
       if (!res) return;
       if (res.exists === false) {
         button.classList.add("ghwb-button--missing");
-        button.title = `${def.label} — this repository is not indexed yet`;
+        button.title = i18nOr(
+          "existenceMissingTitle",
+          [def.label],
+          `${def.label} — this repository is not indexed yet`,
+        );
       } else if (res.exists === true) {
         button.classList.remove("ghwb-button--missing");
         button.title = def.label;
       }
     })
     .catch(() => {
+      if (epoch !== renderEpoch) return;
       if (!button.isConnected) return;
-      button.classList.remove("ghwb-button--checking");
-      button.title = previousTitle;
+      restore();
     });
+};
+
+/**
+ * True when the previous render is still exactly what this render would
+ * produce: same repo, same settings revision, and every rendered node still
+ * sits inside the current nav list. Lets soft-nav events re-fire freely
+ * without tearing down and rebuilding identical buttons.
+ */
+const isRenderIntact = (
+  navActions: HTMLUListElement,
+  signature: string,
+): boolean => {
+  if (renderedSignature !== signature) return false;
+  const containers = document.querySelectorAll(`.${CONTAINER_CLASS}`);
+  if (containers.length !== renderedCount) return false;
+  for (const el of containers) {
+    if (el.parentElement !== navActions) return false;
+  }
+  return true;
 };
 
 const renderButtons = (): void => {
@@ -92,12 +183,18 @@ const renderButtons = (): void => {
   const repo = parseRepoFromPath();
   if (!repo) {
     removeRenderedNodes();
+    renderedSignature = null;
     return;
   }
+
+  const signature = `${repo.owner}/${repo.repo}::${stateRevision}`;
+  if (isRenderIntact(navActions, signature)) return;
 
   const services = enabledOrderedServices();
 
   removeRenderedNodes();
+  renderedSignature = signature;
+  renderedCount = 0;
   if (services.length === 0) return;
 
   const epoch = ++renderEpoch;
@@ -124,6 +221,7 @@ const renderButtons = (): void => {
 
     container.appendChild(btnGroup);
     navActions.insertBefore(container, navActions.firstChild);
+    renderedCount = 1;
   } else {
     // Insert in reverse so the first service in `services` ends up leftmost.
     for (const def of [...services].reverse()) {
@@ -138,6 +236,7 @@ const renderButtons = (): void => {
       navActions.insertBefore(container, navActions.firstChild);
       rendered.push({ def, el: button });
     }
+    renderedCount = services.length;
   }
 
   for (const { def, el } of rendered) {
@@ -150,14 +249,24 @@ const scheduleRender = (): void => {
   renderScheduled = true;
   queueMicrotask(() => {
     renderScheduled = false;
+    if (!isExtensionAlive()) {
+      teardown();
+      return;
+    }
     renderButtons();
   });
 };
 
+const invalidateAndRender = (): void => {
+  stateRevision += 1;
+  scheduleRender();
+};
+
+/** Re-add buttons when GitHub's DOM morphing wiped them from the nav. */
 const ensureRendered = (): void => {
   const navActions = document.querySelector<HTMLUListElement>(NAV_SELECTOR);
   if (!navActions) return;
-  if (document.querySelector(`.${CONTAINER_CLASS}`)) return;
+  if (navActions.querySelector(`.${CONTAINER_CLASS}`)) return;
   scheduleRender();
 };
 
@@ -167,18 +276,26 @@ const start = async (): Promise<void> => {
 
   // Subscribe BEFORE the initial reads so events landing mid-flight aren't
   // silently overwritten by the older startup snapshot below.
-  subscribeSettings((next) => {
-    settingsSubscriberFired = true;
-    currentSettings = reconcileSettings(next, collectAvailableIds());
-    scheduleRender();
-  });
+  teardownCallbacks.push(
+    subscribeSettings((next) => {
+      settingsSubscriberFired = true;
+      currentSettings = reconcileSettings(next, collectAvailableIds());
+      invalidateAndRender();
+    }),
+  );
 
-  subscribeCustomServices((next) => {
-    customSubscriberFired = true;
-    currentCustomServices = next;
-    currentSettings = reconcileSettings(currentSettings, collectAvailableIds());
-    scheduleRender();
-  });
+  teardownCallbacks.push(
+    subscribeCustomServices((next) => {
+      customSubscriberFired = true;
+      currentCustomServices = next;
+      refreshServiceMap();
+      currentSettings = reconcileSettings(
+        currentSettings,
+        collectAvailableIds(),
+      );
+      invalidateAndRender();
+    }),
+  );
 
   // Load each datasource independently so a custom-services read failure
   // does not throw away otherwise readable settings (and vice versa).
@@ -188,6 +305,7 @@ const start = async (): Promise<void> => {
   ]);
   if (!customSubscriberFired && customResult.status === "fulfilled") {
     currentCustomServices = customResult.value;
+    refreshServiceMap();
   }
   if (!settingsSubscriberFired) {
     const base =
@@ -197,24 +315,32 @@ const start = async (): Promise<void> => {
     currentSettings = reconcileSettings(base, collectAvailableIds());
   }
 
-  scheduleRender();
+  invalidateAndRender();
 
   let lastUrl = location.href;
-  let isProcessing = false;
+
+  const onSoftNavigation = (): void => {
+    if (!isExtensionAlive()) {
+      teardown();
+      return;
+    }
+    lastUrl = location.href;
+    scheduleRender();
+  };
 
   const observer = new MutationObserver(() => {
-    if (isProcessing) return;
-    isProcessing = true;
-    try {
-      const url = location.href;
-      if (url !== lastUrl) {
-        lastUrl = url;
-        window.setTimeout(scheduleRender, 200);
-      } else {
-        ensureRendered();
-      }
-    } finally {
-      isProcessing = false;
+    if (!isExtensionAlive()) {
+      teardown();
+      return;
+    }
+    const url = location.href;
+    if (url !== lastUrl) {
+      lastUrl = url;
+      // Render immediately, then once more after GitHub settles its morphing.
+      scheduleRender();
+      window.setTimeout(scheduleRender, NAV_SETTLE_DELAY_MS);
+    } else {
+      ensureRendered();
     }
   });
 
@@ -222,6 +348,26 @@ const start = async (): Promise<void> => {
     childList: true,
     subtree: true,
   });
+  teardownCallbacks.push(() => observer.disconnect());
+
+  for (const eventName of DOCUMENT_NAV_EVENTS) {
+    document.addEventListener(eventName, onSoftNavigation);
+    teardownCallbacks.push(() =>
+      document.removeEventListener(eventName, onSoftNavigation),
+    );
+  }
+  for (const eventName of WINDOW_NAV_EVENTS) {
+    window.addEventListener(eventName, onSoftNavigation);
+    teardownCallbacks.push(() =>
+      window.removeEventListener(eventName, onSoftNavigation),
+    );
+  }
 };
 
-void start();
+// The background worker re-injects into open tabs on install/update, which
+// can race the manifest-declared injection on loading pages. Run only once
+// per isolated world.
+if (!window.__ghwbContentScriptLoaded) {
+  window.__ghwbContentScriptLoaded = true;
+  void start();
+}

@@ -139,6 +139,14 @@
     "message": "Settings saved.",
     "description": "Toast shown after settings are persisted"
   },
+  "settingsSaveFailedToast": {
+    "message": "Couldn't save settings. Please try again.",
+    "description": "Toast shown when persisting settings to sync storage failed"
+  },
+  "displayLegend": {
+    "message": "Display",
+    "description": "Legend label on the display settings panel"
+  },
   "settingsResetLabel": {
     "message": "Restore defaults",
     "description": "Button label that restores default settings"
@@ -222,5 +230,49 @@
   "customServicesLoadFailedNote": {
     "message": "Couldn't read your custom services from sync. Reload the page to retry — adds and resets are paused to avoid overwriting unloaded entries.",
     "description": "Banner shown when the initial custom-services storage read failed"
+  },
+  "customLabelInvalid": {
+    "message": "Enter a label (1–40 characters).",
+    "description": "Validation error for the custom service label field"
+  },
+  "customUrlProtocolInvalid": {
+    "message": "URL must start with http:// or https://.",
+    "description": "Validation error when the URL template has no http(s) scheme"
+  },
+  "customUrlNeedsPlaceholders": {
+    "message": "Include both {owner} and {repo} placeholders.",
+    "description": "Validation error when the URL template lacks placeholders"
+  },
+  "customUrlInvalid": {
+    "message": "Enter a valid URL template (max 400 characters).",
+    "description": "Generic validation error for the URL template field"
+  },
+  "customColorInvalid": {
+    "message": "Color must be a hex value like #aabbcc.",
+    "description": "Validation error for the custom service color field"
+  },
+  "customIdCollision": {
+    "message": "A service with this id already exists.",
+    "description": "Validation error when a generated service id collides"
+  },
+  "existenceCheckingTitle": {
+    "message": "$label$ — checking…",
+    "description": "Button tooltip while the existence check is in flight",
+    "placeholders": {
+      "label": {
+        "content": "$1",
+        "example": "DeepWiki"
+      }
+    }
+  },
+  "existenceMissingTitle": {
+    "message": "$label$ — this repository is not indexed yet",
+    "description": "Button tooltip when the target page does not exist",
+    "placeholders": {
+      "label": {
+        "content": "$1",
+        "example": "DeepWiki"
+      }
+    }
   }
 }

@@ -89,7 +89,7 @@ export const WikiExistsRequestSchema = z.object({
 export type WikiExistsRequest = z.infer<typeof WikiExistsRequestSchema>;
 
 export const WikiExistsResponseSchema = z.object({
-  exists: z.union([z.boolean(), z.null()]),
+  exists: z.boolean().nullable(),
   checkedAt: z.number(),
 });
 export type WikiExistsResponse = z.infer<typeof WikiExistsResponseSchema>;

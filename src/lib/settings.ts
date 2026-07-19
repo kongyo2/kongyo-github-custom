@@ -1,4 +1,5 @@
 import { BUILT_IN_SERVICE_IDS } from "./builtInServices.ts";
+import { isRecord } from "./guards.ts";
 import {
   ButtonSettingsSchema,
   DeepWikiExistenceCheckMethodSchema,
@@ -33,9 +34,6 @@ export const DEFAULT_SETTINGS: Settings = {
 };
 
 const cloneDefaults = (): Settings => structuredClone(DEFAULT_SETTINGS);
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null;
 
 /**
  * Lenient parsing — older shapes (no `order`, legacy `Record<WikiKey, ButtonSettings>`)

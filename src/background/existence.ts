@@ -1,11 +1,19 @@
 import { BUILT_IN_SERVICES } from "@/lib/builtInServices.ts";
+import { isRecord } from "@/lib/guards.ts";
 import type { WikiExistsResponse } from "@/lib/messages.ts";
+import { WikiExistsResponseSchema } from "@/lib/schemas.ts";
 import {
   loadSettings,
   type DeepWikiExistenceCheckMethod,
 } from "@/lib/settings.ts";
 
-const TTL_MS = 24 * 60 * 60 * 1000;
+/**
+ * Positive results are stable (an indexed repo stays indexed), so they can be
+ * cached for a long time. Negative results flip as soon as someone triggers
+ * indexing, so retry them much sooner.
+ */
+const POSITIVE_TTL_MS = 24 * 60 * 60 * 1000;
+const NEGATIVE_TTL_MS = 60 * 60 * 1000;
 const FETCH_TIMEOUT_MS = 8000;
 const CACHE_PREFIX = "ghwb:exists:";
 const HEAD_READ_LIMIT_BYTES = 64 * 1024;
@@ -19,6 +27,9 @@ const DEEPWIKI_MCP_TOOL = "read_wiki_structure";
 const DEEPWIKI_NOT_INDEXED_MARKER =
   "Think Deep Research for GitHub - powered by Devin";
 
+const ttlFor = (exists: boolean): number =>
+  exists ? POSITIVE_TTL_MS : NEGATIVE_TTL_MS;
+
 type McpToolResult = {
   content?: unknown;
   structuredContent?: unknown;
@@ -29,9 +40,6 @@ type McpJsonRpcResponse = {
   result?: McpToolResult;
   error?: unknown;
 };
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null;
 
 const isMcpJsonRpcResponse = (value: unknown): value is McpJsonRpcResponse => {
   if (!isRecord(value)) return false;
@@ -230,6 +238,18 @@ const cacheKey = (
 ): string =>
   `${CACHE_PREFIX}${key}:${method}:${owner.toLowerCase()}/${repo.toLowerCase()}`;
 
+const readCachedResponse = async (
+  ck: string,
+): Promise<WikiExistsResponse | null> => {
+  const got = await chrome.storage.local.get(ck);
+  const parsed = WikiExistsResponseSchema.safeParse(got[ck]);
+  if (!parsed.success) return null;
+  const cached = parsed.data;
+  if (cached.exists === null) return null;
+  if (Date.now() - cached.checkedAt >= ttlFor(cached.exists)) return null;
+  return cached;
+};
+
 const getBuiltInExistenceConfig = (
   key: string,
 ): { buildCheckUrl: (o: string, r: string) => string } | null => {
@@ -238,7 +258,32 @@ const getBuiltInExistenceConfig = (
   return def.existenceCheck ?? null;
 };
 
-export const checkWikiExists = async (
+/**
+ * Drop cache entries whose TTL has already elapsed (plus any that no longer
+ * parse). Without this, `chrome.storage.local` grows by one entry per repo
+ * visited, forever. Runs from the service worker on install and startup.
+ */
+export const pruneExpiredExistenceCache = async (): Promise<void> => {
+  const all = await chrome.storage.local.get(null);
+  const now = Date.now();
+  const stale: string[] = [];
+  for (const [key, value] of Object.entries(all)) {
+    if (!key.startsWith(CACHE_PREFIX)) continue;
+    const parsed = WikiExistsResponseSchema.safeParse(value);
+    if (!parsed.success || parsed.data.exists === null) {
+      stale.push(key);
+      continue;
+    }
+    if (now - parsed.data.checkedAt >= ttlFor(parsed.data.exists)) {
+      stale.push(key);
+    }
+  }
+  if (stale.length > 0) {
+    await chrome.storage.local.remove(stale);
+  }
+};
+
+const performCheck = async (
   key: string,
   owner: string,
   repo: string,
@@ -251,21 +296,16 @@ export const checkWikiExists = async (
   const method =
     key === "deepwiki" ? await getDeepWikiExistenceCheckMethod() : "page";
   const ck = cacheKey(key, method, owner, repo);
-  const cached = (await chrome.storage.local.get(ck))[ck] as
-    | WikiExistsResponse
-    | undefined;
-  const now = Date.now();
-  if (cached && now - cached.checkedAt < TTL_MS) {
-    return cached;
-  }
+  const cached = await readCachedResponse(ck);
+  if (cached) return cached;
 
-  const url = cfg.buildCheckUrl(owner, repo);
+  const now = Date.now();
   let exists: boolean | null = null;
   try {
     exists =
       key === "deepwiki" && method === "mcp"
         ? await checkDeepWikiWithMcp(owner, repo)
-        : await checkWithPageMarker(url);
+        : await checkWithPageMarker(cfg.buildCheckUrl(owner, repo));
   } catch {
     exists = null;
   }
@@ -276,4 +316,24 @@ export const checkWikiExists = async (
     await chrome.storage.local.set({ [ck]: result });
   }
   return result;
+};
+
+// Coalesce concurrent lookups (multiple frames/tabs opening the same repo)
+// into one network request per (service, repo).
+const inFlight = new Map<string, Promise<WikiExistsResponse>>();
+
+export const checkWikiExists = (
+  key: string,
+  owner: string,
+  repo: string,
+): Promise<WikiExistsResponse> => {
+  const flightKey = `${key}:${owner.toLowerCase()}/${repo.toLowerCase()}`;
+  const pending = inFlight.get(flightKey);
+  if (pending) return pending;
+
+  const task = performCheck(key, owner, repo).finally(() => {
+    inFlight.delete(flightKey);
+  });
+  inFlight.set(flightKey, task);
+  return task;
 };

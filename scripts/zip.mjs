@@ -11,9 +11,9 @@ import { join, relative, sep } from "node:path";
 import { createDeflateRaw } from "node:zlib";
 import { pipeline } from "node:stream/promises";
 import { Buffer } from "node:buffer";
-import { URL } from "node:url";
+import { fileURLToPath } from "node:url";
 
-const root = new URL("..", import.meta.url).pathname.replace(/^\/(\w):/, "$1:");
+const root = fileURLToPath(new URL("..", import.meta.url));
 const dist = join(root, "dist");
 const releaseDir = join(root, "release");
 const pkg = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
@@ -32,11 +32,20 @@ const files = [];
 async function walk(dir) {
   for (const entry of await readdir(dir, { withFileTypes: true })) {
     const full = join(dir, entry.name);
-    if (entry.isDirectory()) await walk(full);
-    else files.push(full);
+    if (entry.isDirectory()) {
+      // .vite/ holds build metadata Chrome never reads.
+      if (entry.name === ".vite") continue;
+      await walk(full);
+    } else {
+      // Source maps are debugging artifacts; keep them out of the store zip.
+      if (entry.name.endsWith(".map")) continue;
+      files.push(full);
+    }
   }
 }
 await walk(dist);
+// Deterministic entry order → byte-identical zips for identical builds.
+files.sort();
 
 const localHeaders = [];
 const centralHeaders = [];
