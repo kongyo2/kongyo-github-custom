@@ -18,13 +18,6 @@ import { buildButton, CONTAINER_CLASS, removeRenderedNodes } from "./render.ts";
 
 import "./styles.css";
 
-declare global {
-  interface Window {
-    /** Set once per isolated world to guard against double injection. */
-    __ghwbContentScriptLoaded?: true;
-  }
-}
-
 const NAV_SELECTOR = "ul.pagehead-actions";
 /** GitHub keeps morphing the page briefly after a soft navigation. */
 const NAV_SETTLE_DELAY_MS = 200;
@@ -36,6 +29,14 @@ const DOCUMENT_NAV_EVENTS = [
 ] as const;
 /** Browser-level events that can also swap the visible page. */
 const WINDOW_NAV_EVENTS = ["popstate", "pageshow"] as const;
+/**
+ * Dispatched on document by each newly injected instance. Any older instance
+ * (double injection, or an orphan surviving an extension update) hears it and
+ * shuts down, so exactly one instance owns the page. A DOM event is used
+ * because it crosses isolated worlds and injection generations, which module
+ * or window state cannot be relied on to do.
+ */
+const INSTANCE_STARTED_EVENT = "kongyo-ghwb#instance-started";
 
 let currentSettings: Settings = DEFAULT_SETTINGS;
 let currentCustomServices: CustomServices = [];
@@ -44,9 +45,13 @@ let serviceMap = buildServiceMap(currentCustomServices);
 let stateRevision = 0;
 let renderEpoch = 0;
 let renderScheduled = false;
-/** Signature + node count of the last completed render, for idempotence. */
+/** Signature + node shape of the last completed render, for idempotence. */
 let renderedSignature: string | null = null;
 let renderedCount = 0;
+/** Ordered `|`-joined service ids of the buttons the last render produced. */
+let renderedKeys = "";
+/** Set once this instance has been torn down (superseded or context died). */
+let stopped = false;
 
 const teardownCallbacks: (() => void)[] = [];
 
@@ -64,6 +69,7 @@ const isExtensionAlive = (): boolean => {
 };
 
 const teardown = (): void => {
+  stopped = true;
   for (const callback of teardownCallbacks.splice(0)) {
     try {
       callback();
@@ -157,11 +163,24 @@ const verifyExistence = (
     });
 };
 
+const renderSignature = (repo: { owner: string; repo: string }): string =>
+  `${repo.owner}/${repo.repo}::${stateRevision}`;
+
+/** Ordered ids of the buttons currently present inside our containers. */
+const domButtonKeys = (): string =>
+  Array.from(
+    document.querySelectorAll<HTMLAnchorElement>(
+      `.${CONTAINER_CLASS} .ghwb-button`,
+    ),
+    (el) => el.dataset["ghwbKey"] ?? "",
+  ).join("|");
+
 /**
  * True when the previous render is still exactly what this render would
- * produce: same repo, same settings revision, and every rendered node still
- * sits inside the current nav list. Lets soft-nav events re-fire freely
- * without tearing down and rebuilding identical buttons.
+ * produce: same repo, same settings revision, every rendered node still sits
+ * inside the current nav list, and the buttons themselves survived GitHub's
+ * DOM morphing (which can strip children while keeping the container). Lets
+ * soft-nav events re-fire freely without rebuilding identical buttons.
  */
 const isRenderIntact = (
   navActions: HTMLUListElement,
@@ -173,7 +192,7 @@ const isRenderIntact = (
   for (const el of containers) {
     if (el.parentElement !== navActions) return false;
   }
-  return true;
+  return domButtonKeys() === renderedKeys;
 };
 
 const renderButtons = (): void => {
@@ -184,10 +203,11 @@ const renderButtons = (): void => {
   if (!repo) {
     removeRenderedNodes();
     renderedSignature = null;
+    renderedKeys = "";
     return;
   }
 
-  const signature = `${repo.owner}/${repo.repo}::${stateRevision}`;
+  const signature = renderSignature(repo);
   if (isRenderIntact(navActions, signature)) return;
 
   const services = enabledOrderedServices();
@@ -195,6 +215,7 @@ const renderButtons = (): void => {
   removeRenderedNodes();
   renderedSignature = signature;
   renderedCount = 0;
+  renderedKeys = services.map((def) => def.id).join("|");
   if (services.length === 0) return;
 
   const epoch = ++renderEpoch;
@@ -245,10 +266,11 @@ const renderButtons = (): void => {
 };
 
 const scheduleRender = (): void => {
-  if (renderScheduled) return;
+  if (stopped || renderScheduled) return;
   renderScheduled = true;
   queueMicrotask(() => {
     renderScheduled = false;
+    if (stopped) return;
     if (!isExtensionAlive()) {
       teardown();
       return;
@@ -262,11 +284,17 @@ const invalidateAndRender = (): void => {
   scheduleRender();
 };
 
-/** Re-add buttons when GitHub's DOM morphing wiped them from the nav. */
+/** Re-render when GitHub's DOM morphing damaged or removed our buttons. */
 const ensureRendered = (): void => {
   const navActions = document.querySelector<HTMLUListElement>(NAV_SELECTOR);
   if (!navActions) return;
-  if (navActions.querySelector(`.${CONTAINER_CLASS}`)) return;
+  const repo = parseRepoFromPath();
+  if (!repo) {
+    // Non-repo page that still shows a pagehead nav: drop stale buttons.
+    if (renderedSignature !== null) scheduleRender();
+    return;
+  }
+  if (isRenderIntact(navActions, renderSignature(repo))) return;
   scheduleRender();
 };
 
@@ -303,6 +331,9 @@ const start = async (): Promise<void> => {
     loadSettings(),
     loadCustomServices(),
   ]);
+  // A successor instance may have superseded us while the reads were in
+  // flight; installing observers now would leak them past teardown().
+  if (stopped) return;
   if (!customSubscriberFired && customResult.status === "fulfilled") {
     currentCustomServices = customResult.value;
     refreshServiceMap();
@@ -365,9 +396,16 @@ const start = async (): Promise<void> => {
 };
 
 // The background worker re-injects into open tabs on install/update, which
-// can race the manifest-declared injection on loading pages. Run only once
-// per isolated world.
-if (!window.__ghwbContentScriptLoaded) {
-  window.__ghwbContentScriptLoaded = true;
-  void start();
-}
+// can race the manifest-declared injection on loading pages — and after an
+// update the previous generation's script may still be running (or may have
+// left stale flags behind). Announce this instance so any predecessor shuts
+// down, then listen so a successor can shut this instance down in turn.
+// dispatchEvent is synchronous: every older listener finishes its teardown
+// before this instance proceeds.
+document.dispatchEvent(new Event(INSTANCE_STARTED_EVENT));
+const onSuperseded = (): void => teardown();
+document.addEventListener(INSTANCE_STARTED_EVENT, onSuperseded);
+teardownCallbacks.push(() =>
+  document.removeEventListener(INSTANCE_STARTED_EVENT, onSuperseded),
+);
+void start();
